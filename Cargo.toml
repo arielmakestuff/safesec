@@ -1,0 +1,11 @@
+[package]
+name = "safesec"
+version = "0.1.0"
+authors = ["Ariel De Ocampo <arielmakestuff@gmail.com>"]
+
+[dependencies]
+lmdb-rs = "0.7.5"
+
+[dev-dependencies]
+tempdir = "0.3.5"
+chrono = "0.3"
