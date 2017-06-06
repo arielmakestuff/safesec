@@ -1,25 +1,14 @@
-// src/lib.rs
+// network.rs
 // Copyright (C) 2017 authors and contributors (see AUTHORS file)
 //
 // This file is released under the MIT License.
-
-// ===========================================================================
-// Externs
-// ===========================================================================
-
-
-#[macro_use]
-extern crate serde_derive;
 
 // ===========================================================================
 // Modules
 // ===========================================================================
 
 
-pub mod error;
-pub mod network;
-pub mod storage;
-pub mod util;
+pub mod msgpack;
 
 
 // ===========================================================================
@@ -32,6 +21,7 @@ pub mod util;
 // Third-party imports
 
 // Local imports
+pub use self::msgpack::MsgPackCodec;
 
 
 // ===========================================================================

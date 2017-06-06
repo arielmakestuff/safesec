@@ -6,6 +6,19 @@ authors = ["Ariel De Ocampo <arielmakestuff@gmail.com>"]
 [dependencies]
 lmdb-rs = "0.7.5"
 
+# Tokio deps
+bytes = "0.4"
+futures = "0.1"
+tokio-io = "0.1"
+tokio-core = "0.1"
+tokio-proto = "0.1"
+tokio-service = "0.1"
+
+# MsgPack deps
+serde = "1.0"
+serde_derive = "1.0"
+rmp-serde = "0.13"
+
 [dev-dependencies]
 tempdir = "0.3.5"
 chrono = "0.3"
