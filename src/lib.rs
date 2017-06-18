@@ -8,8 +8,26 @@
 // ===========================================================================
 
 
+// Stdlib externs
+
+// Third-party externs
+extern crate bytes;
+extern crate futures;
+
+#[cfg(test)]
 #[macro_use]
-extern crate serde_derive;
+extern crate quickcheck;
+
+extern crate rmp;
+extern crate rmp_serde as rmps;
+extern crate rmpv;
+extern crate serde;
+extern crate tokio_core;
+extern crate tokio_io;
+extern crate tokio_service;
+
+// Local externs
+
 
 // ===========================================================================
 // Modules

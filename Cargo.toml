@@ -17,8 +17,15 @@ tokio-service = "0.1"
 # MsgPack deps
 serde = "1.0"
 serde_derive = "1.0"
+rmp = "0.8"
 rmp-serde = "0.13"
+
+[dependencies.rmpv]
+version = "0.4"
+features = ["with-serde"]
+
 
 [dev-dependencies]
 tempdir = "0.3.5"
 chrono = "0.3"
+quickcheck = "0.4"
