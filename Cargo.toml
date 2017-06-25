@@ -3,6 +3,10 @@ name = "safesec"
 version = "0.1.0"
 authors = ["Ariel De Ocampo <arielmakestuff@gmail.com>"]
 
+[[bin]]
+doc = false
+name = "safesec"
+
 [dependencies]
 lmdb-rs = "0.7.5"
 
