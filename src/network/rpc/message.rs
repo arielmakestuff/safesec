@@ -15,12 +15,10 @@
 //!
 //! # Types and Traits
 //!
-//! This module provides 4 types and 2 traits as the building blocks of all RPC
+//! This module provides 2 types and 2 traits as the building blocks of all RPC
 //! messages. The types provided are:
 //!
 //! * MessageType
-//! * MessageError
-//! * CodeError
 //! * Message
 //!
 //! And the traits provided are:
@@ -41,23 +39,18 @@
 //! * Response
 //! * Notification
 //!
-//! ## MessageError
-//!
-//! Defines all possible errors that can result when creating or using a
-//! message. While a specific implementation of a specific message type might
-//! use a different way of representing errors internally, it is expected that
-//! any public method that can generate errors will return a MessageError value.
-//!
-//! ## CodeError
-//!
-//! Defines all errors that can be generated when using methods defined by the
-//! [`CodeConvert`] trait.
-//!
-//! [`CodeConvert`]: trait.CodeConvert.html
-//!
 //! ## Message
 //!
 //! The core base type of all RPC messages.
+//!
+//! ## CodeConvert
+//!
+//! This trait provides a common interface for converting between a number and
+//! a type.
+//!
+//! ## RpcMessage
+//!
+//! This trait provides a interface common to all messages.
 //!
 //! # Validation
 //!
@@ -125,96 +118,34 @@
 use std::clone::Clone;
 
 // Third-party imports
-use rmp::Marker;
+// use rmp::Marker;
 use rmpv::Value;
 
 // Local imports
+use ::error::{Error, GeneralError, Result};
+use ::error::network::rpc::{RpcError, RpcResult};
 
 
 // ===========================================================================
-// Serializable messages
+// Helpers
 // ===========================================================================
 
 
-/// Enum defining the various message errors
-#[derive(Debug, PartialEq)]
-pub enum MessageError {
-    /// Catch-all error
-    ///
-    /// This error is usually only used when the deserialized messagepack
-    /// is not an array.
-    ///
-    /// Contains an [`rmp::Marker`] value representing the expected type.
-    InvalidType(Marker),
-
-    /// The type of the message's first parameter is invalid.
-    ///
-    /// Contains an [`rmp::Marker`] value representing the expected type.
-    InvalidMessageType(Marker),
-
-    /// The type of the message's second parameter is invalid.
-    ///
-    /// Contains an [`rmp::Marker`] value representing the expected type.
-    ///
-    /// This error is for Request and Response message types only.
-    InvalidIDType(Marker),
-
-    /// The value of the Request message's third parameter is invalid.
-    ///
-    /// This variant contains the invalid value.
-    ///
-    /// This error is for the Request message type only.
-    InvalidCode(u8),
-
-    /// The type of the Request message's third parameter is invalid.
-    ///
-    /// Contains an [`rmp::Marker`] value representing the expected type.
-    ///
-    /// This error is for the Request message type only.
-    InvalidCodeType(Marker),
-
-    /// The value of the Response message's third parameter is invalid.
-    ///
-    /// This variant contains the invalid value.
-    ///
-    /// This error is for the Response message type only.
-    InvalidErrorCode(u8),
-
-    /// The type of the Response message's third parameter is invalid.
-    ///
-    /// Contains a [`rmp::Marker`] value representing the expected type.
-    ///
-    /// This error is for the Response message type only.
-    InvalidErrorCodeType(Marker),
-
-    /// The value of the Notifcation message's second parameter is invalid.
-    ///
-    /// This variant contains the invalid value.
-    ///
-    /// This error is for the Notification message type only.
-    InvalidNotifyCode(u8),
-
-    /// The type of the Notification message's second parameter is invalid.
-    ///
-    /// Contains a [`rmp::Marker`] value representing the expected type.
-    ///
-    /// This error is for the Notification message type only.
-    InvalidNotifyCodeType(Marker),
-
-    /// The type of the Request message's fourth parameter is invalid.
-    ///
-    /// Contains an [`rmp::Marker`] value representing the expected type.
-    ///
-    /// This error is for the Request message type only.
-    InvalidArgsType(Marker),
-}
-
-
-/// Enum defining code errors
-#[derive(Debug, PartialEq)]
-pub enum CodeError {
-    /// The number is an invalid code value.
-    InvalidCode
+// Return the name of a Value variant
+fn value_type(arg: &Value) -> String {
+    let ret = match *arg {
+        Value::Nil => "nil",
+        Value::Boolean(_) => "bool",
+        Value::Integer(_) => "int",
+        Value::F32(_) => "float32",
+        Value::F64(_) => "float64",
+        Value::String(_) => "str",
+        Value::Binary(_) => "bytearray",
+        Value::Array(_) => "array",
+        Value::Map(_) => "map",
+        Value::Ext(_, _) => "ext"
+    };
+    String::from(ret)
 }
 
 
@@ -231,7 +162,7 @@ pub enum CodeError {
 /// [`CodeConvert`]: trait.CodeConvert.html
 pub trait CodeConvert<T>: Clone + PartialEq {
     /// Convert a number to type T.
-    fn from_number(num: u8) -> Result<T, CodeError>;
+    fn from_number(num: u8) -> Result<T>;
 
     /// Convert type To to a number.
     fn to_number(&self) -> u8;
@@ -258,12 +189,12 @@ pub enum MessageType {
 
 
 impl CodeConvert<MessageType> for MessageType {
-    fn from_number(num: u8) -> Result<MessageType, CodeError> {
+    fn from_number(num: u8) -> Result<MessageType> {
         match num {
             0 => Ok(MessageType::Request),
             1 => Ok(MessageType::Response),
             2 => Ok(MessageType::Notification),
-            _ => Err(CodeError::InvalidCode)
+            _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
         }
     }
 
@@ -292,18 +223,20 @@ pub trait RpcMessage {
     /// # Errors
     ///
     /// If the internally owned [`rmpv::Value`] object contains an invalid
-    /// value for the message type, then a [`MessageError`]::InvalidMessageType
+    /// value for the message type, then an RpcError::InvalidMessageType
     /// error is returned.
-    ///
-    /// [`MessageError`]: enum.MessageError.html
-    fn message_type(&self) -> Result<MessageType, MessageError> {
+    fn message_type(&self) -> RpcResult<MessageType> {
         let msgtype: u8 = match self.message()[0].as_u64() {
             Some(v) => v as u8,
             None => unreachable!()
         };
         match MessageType::from_number(msgtype) {
             Ok(c) => Ok(c),
-            Err(_) => Err(MessageError::InvalidMessageType(Marker::U8))
+            Err(_) => {
+                let errmsg = msgtype.to_string();
+                let err = Error::new(RpcError::InvalidMessageType, errmsg);
+                Err(err)
+            }
         }
     }
 
@@ -312,18 +245,24 @@ pub trait RpcMessage {
     /// # Errors
     ///
     /// If the value is either None or a value that cannot fit into the type
-    /// specified by `expected`, then the [`MessageError`]::InvalidType error
+    /// specified by `expected`, then the GeneralError::InvalidType error
     /// is returned.
-    ///
-    /// [`MessageError`]: enum.MessageError.html
-    fn check_int(val: Option<u64>, max_value: u64, expected: Marker) -> Result<u64, MessageError> {
+    fn check_int(val: Option<u64>, max_value: u64, expected: String) -> Result<u64> {
         match val {
             None => {
-                return Err(MessageError::InvalidType(expected));
+                let errmsg = format!("expected {} but got {}",
+                                     expected,
+                                     String::from("None"));
+                let err = Error::new(GeneralError::InvalidType, errmsg);
+                Err(err)
             },
             Some(v) => {
                 if v > max_value {
-                    return Err(MessageError::InvalidType(expected));
+                    let errmsg = format!("expected value <= {} but got value {}",
+                                         max_value.to_string(),
+                                         v.to_string());
+                    let err = Error::new(GeneralError::InvalidType, errmsg);
+                    return Err(err);
                 }
                 Ok(v)
             }
@@ -332,18 +271,7 @@ pub trait RpcMessage {
 
     /// Return the string name of an [`rmpv::Value`] object.
     fn value_type_name(arg: &Value) -> String {
-        match *arg {
-            Value::Nil => String::from("nil"),
-            Value::Boolean(_) => String::from("bool"),
-            Value::Integer(_) => String::from("int"),
-            Value::F32(_) => String::from("float32"),
-            Value::F64(_) => String::from("float64"),
-            Value::String(_) => String::from("str"),
-            Value::Binary(_) => String::from("bytearray"),
-            Value::Array(_) => String::from("array"),
-            Value::Map(_) => String::from("map"),
-            Value::Ext(_, _) => String::from("ext")
-        }
+        value_type(arg)
     }
 
 }
@@ -387,23 +315,29 @@ impl Message {
     /// 1. The value is not an array
     /// 2. The length of the array is less than 3 or greater than 4
     /// 3. The array's first item is not a u8
-    pub fn from(val: Value) -> Result<Self, MessageError>{
+    pub fn from(val: Value) -> RpcResult<Self> {
         if let Some(array) = val.as_array() {
             let arraylen = array.len();
-            if arraylen < 3 {
-                return Err(MessageError::InvalidType(Marker::FixArray(3)));
-            } else if arraylen > 4 {
-                return Err(MessageError::InvalidType(Marker::FixArray(4)));
+            if arraylen < 3 || arraylen > 4 {
+                let errmsg = format!("expected array length of either 3 or 4, got {}",
+                                     arraylen);
+                let err = Error::new(RpcError::InvalidArrayLength, errmsg);
+                return Err(err);
             }
 
             // Check msg type
             let msgtype = Self::check_int(array[0].as_u64(),
-                                          u8::max_value() as u64, Marker::U8);
-            if let Err(_) = msgtype {
-                return Err(MessageError::InvalidMessageType(Marker::U8));
+                                          u8::max_value() as u64,
+                                          "u8".to_string());
+            if let Err(e) = msgtype {
+                let err = Error::new(RpcError::InvalidMessageType, e);
+                return Err(err);
             }
         } else {
-            return Err(MessageError::InvalidType(Marker::FixArray(3)));
+            let errmsg = format!("expected array but got {}",
+                                 value_type(&val));
+            let err = Error::new(RpcError::InvalidMessage, errmsg);
+            return Err(err);
         }
         Ok(Self {msg: val})
     }
@@ -429,13 +363,19 @@ impl Clone for Message {
 
 #[cfg(test)]
 mod tests {
+    // std lib imports
+    use std::error::Error;
+
     // Third-party imports
     use quickcheck::TestResult;
+    use rmpv::Value;
 
     // Local imports
-    use ::network::rpc::message::{CodeConvert, CodeError, MessageType};
-    // use rmps;
-    // use rmpv::Value;
+    use ::error;
+    use ::error::network::rpc::RpcError;
+    use ::network::rpc::message::{CodeConvert, Message, MessageType,
+                                  RpcMessage};
+    use super::value_type;
 
     // --------------------
     // Decode tests
@@ -473,7 +413,13 @@ mod tests {
                 return TestResult::discard()
             }
             match MessageType::from_number(xs) {
-                Err(c) => TestResult::from_bool(c == CodeError::InvalidCode),
+                Err(c) => {
+                    let errmsg = xs.to_string();
+                    let errkind = error::GeneralError::InvalidValue;
+                    // let err = error::Error(errkind, _);
+                    TestResult::from_bool(c.kind() == errkind &&
+                                          c.description() == errmsg)
+                },
                 Ok(_) => TestResult::from_bool(false)
             }
         }
@@ -507,10 +453,6 @@ mod tests {
     // --------------------
     // Message
     // --------------------
-    use rmp::Marker;
-    use rmpv::Value;
-    use ::network::rpc::message::{RpcMessage, Message, MessageError};
-
 
     // Helper
     fn mkmessage(msgtype: u8) -> Message {
@@ -527,9 +469,9 @@ mod tests {
     quickcheck! {
         // val == None always returns an err with given marker
         fn message_check_int_none_val(xs: u64) -> bool {
-            let m = Marker::Null;
-            if let Err(MessageError::InvalidType(e)) = Message::check_int(None, xs, m) {
-                m == e
+            let expected = "expected u8 but got None";
+            if let Err(e) = Message::check_int(None, xs, String::from("u8")) {
+                e.kind() == error::GeneralError::InvalidType && e.description() == expected
             } else {
                 false
             }
@@ -541,10 +483,12 @@ mod tests {
                 return TestResult::discard()
             }
 
-            let m = Marker::Null;
-            let result = Message::check_int(Some(val), max_value, m);
-            if let Err(MessageError::InvalidType(e)) = result {
-                TestResult::from_bool(m == e)
+            let expected = format!("expected value <= {} but got value {}",
+                                   max_value, val);
+            let result = Message::check_int(Some(val), max_value, val.to_string());
+            if let Err(e) = result {
+                TestResult::from_bool(e.kind() == error::GeneralError::InvalidType &&
+                                      e.description() == expected)
             } else {
                 TestResult::from_bool(false)
             }
@@ -556,8 +500,7 @@ mod tests {
                 return TestResult::discard()
             }
 
-            let m = Marker::Null;
-            let result = Message::check_int(Some(val), max_value, m);
+            let result = Message::check_int(Some(val), max_value, val.to_string());
             if let Ok(v) = result {
                 TestResult::from_bool(v == val)
             } else {
@@ -573,12 +516,13 @@ mod tests {
             if varnum < 3 {
                 return TestResult::discard()
             }
+            let expected = varnum.to_string();
             let msg = mkmessage(varnum);
-            match msg.message_type() {
-                Err(MessageError::InvalidMessageType(Marker::U8)) => {
-                    TestResult::from_bool(true)
-                },
-                _ => TestResult::from_bool(false)
+            if let Err(e) = msg.message_type() {
+                TestResult::from_bool(e.kind() == RpcError::InvalidMessageType &&
+                                      e.description() == expected)
+            } else {
+                TestResult::from_bool(false)
             }
         }
 
@@ -685,8 +629,13 @@ mod tests {
     #[test]
     fn message_from_non_array_always_err() {
         let v = Value::from(42);
+        let expected = format!("expected array but got {}",
+                               value_type(&v));
         let ret = match Message::from(v) {
-            Err(MessageError::InvalidType(Marker::FixArray(3))) => true,
+            Err(e) => {
+                (e.kind() == RpcError::InvalidMessage &&
+                 e.description() == expected)
+            },
             _ => false
         };
         assert!(ret)
@@ -707,9 +656,12 @@ mod tests {
 
             // WHEN
             // creating a message using from method
+            let expected = format!("expected array length of either 3 or 4, got {}",
+                                   arraylen);
             let result = match Message::from(array) {
-                Err(MessageError::InvalidType(Marker::FixArray(n))) => {
-                    (arraylen < 3 && n == 3) || (arraylen > 4 && n == 4)
+                Err(e) => {
+                    (e.kind() == RpcError::InvalidArrayLength &&
+                     e.description() == expected)
                 },
                 _ => false
             };
@@ -733,8 +685,13 @@ mod tests {
 
             // WHEN
             // creating a message via Message::from()
+            let expected = format!("expected value <= {} but got value {}",
+                                   maxval, code);
             let result = match Message::from(Value::from(array)) {
-                Err(MessageError::InvalidMessageType(Marker::U8)) => true,
+                Err(e) => {
+                    (e.kind() == RpcError::InvalidMessageType &&
+                     e.description() == expected)
+                }
                 _ => false
             };
 
@@ -748,7 +705,6 @@ mod tests {
     // the array is u8
     #[test]
     fn message_from_valid_value() {
-        // GIVEN
         let valvec: Vec<Value> = vec![42, 42, 42].iter()
             .map(|v| Value::from(v.clone())).collect();
         let array = Value::from(valvec);

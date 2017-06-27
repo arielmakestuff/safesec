@@ -38,8 +38,8 @@ pub mod message;
 // ===========================================================================
 
 
-pub use ::network::rpc::message::{CodeConvert, CodeError, Message, MessageError,
-                                  MessageType, RpcMessage};
+pub use ::network::rpc::message::{CodeConvert, Message, MessageType,
+                                  RpcMessage};
 // pub use self::request::{RequestMessage, ReqMsgOp};
 // pub use self::response::{ResponseMessage, RespMsgOp};
 // pub use self::notify::{NotifyMessage, NotifyMsgOp};
