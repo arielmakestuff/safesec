@@ -132,7 +132,7 @@ use ::error::network::rpc::{RpcError, RpcResult};
 
 
 // Return the name of a Value variant
-fn value_type(arg: &Value) -> String {
+pub fn value_type(arg: &Value) -> String {
     let ret = match *arg {
         Value::Nil => "nil",
         Value::Boolean(_) => "bool",

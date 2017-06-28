@@ -29,7 +29,7 @@
 
 pub mod message;
 // pub mod notify;
-// pub mod request;
+pub mod request;
 // pub mod response;
 
 
