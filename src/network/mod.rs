@@ -1,4 +1,4 @@
-// network.rs
+// network/mod.rs
 // Copyright (C) 2017 authors and contributors (see AUTHORS file)
 //
 // This file is released under the MIT License.
@@ -12,15 +12,23 @@ pub mod rpc;
 
 
 // ===========================================================================
-// Imports
+// Exports
 // ===========================================================================
 
+// Enums
+pub use self::rpc::MessageType;
 
-// Stdlib imports
+// Types
+pub use self::rpc::Message;
+pub use self::rpc::NotificationMessage;
+pub use self::rpc::RequestMessage;
+pub use self::rpc::ResponseMessage;
 
-// Third-party imports
-
-// Local imports
+// Traits
+pub use self::rpc::{CodeConvert, RpcMessage};
+pub use self::rpc::RpcNotice;
+pub use self::rpc::RpcRequest;
+pub use self::rpc::RpcResponse;
 
 
 // ===========================================================================

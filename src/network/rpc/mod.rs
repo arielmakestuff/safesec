@@ -38,11 +38,20 @@ pub mod response;
 // ===========================================================================
 
 
-pub use ::network::rpc::message::{CodeConvert, Message, MessageType,
-                                  RpcMessage};
-// pub use self::request::{RequestMessage, ReqMsgOp};
-// pub use self::response::{ResponseMessage, RespMsgOp};
-// pub use self::notify::{NotifyMessage, NotifyMsgOp};
+// Enums
+pub use self::message::MessageType;
+
+// Types
+pub use self::message::Message;
+pub use self::notify::NotificationMessage;
+pub use self::request::RequestMessage;
+pub use self::response::ResponseMessage;
+
+// Traits
+pub use self::message::{CodeConvert, RpcMessage};
+pub use self::notify::RpcNotice;
+pub use self::request::RpcRequest;
+pub use self::response::RpcResponse;
 
 
 // ===========================================================================
