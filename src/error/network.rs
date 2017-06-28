@@ -46,7 +46,8 @@ pub mod rpc {
         InvalidResponseType,
         InvalidNotification,
         InvalidNotificationType,
-        InvalidRequestArgs
+        InvalidRequestArgs,
+        InvalidNotificationArgs,
     }
 
     impl ErrorMessage for RpcError {
@@ -60,9 +61,13 @@ pub mod rpc {
                 RpcError::InvalidRequestType => "Invalid request type",
                 RpcError::InvalidResponse => "Invalid response message",
                 RpcError::InvalidResponseType => "Invalid response type",
-                RpcError::InvalidNotification => "Invalid notification message",
-                RpcError::InvalidNotificationType => "Invalid notification type",
-                RpcError::InvalidRequestArgs => "Invalid request arguments"
+                RpcError::InvalidNotification => "Invalid notification \
+                                                  message",
+                RpcError::InvalidNotificationType => "Invalid notification \
+                                                      type",
+                RpcError::InvalidRequestArgs => "Invalid request arguments",
+                RpcError::InvalidNotificationArgs => "Invalid notification \
+                                                      arguments"
             }
         }
     }
