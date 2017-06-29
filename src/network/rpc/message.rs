@@ -175,7 +175,7 @@ pub trait CodeConvert<T>: Clone + PartialEq {
 
 
 /// Enum defining different types of messages
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, CodeConvert)]
 pub enum MessageType {
     /// A message initiating a request.
     Request,
@@ -185,22 +185,6 @@ pub enum MessageType {
 
     /// A message notifying of some additional information.
     Notification
-}
-
-
-impl CodeConvert<MessageType> for MessageType {
-    fn from_number(num: u8) -> Result<MessageType> {
-        match num {
-            0 => Ok(MessageType::Request),
-            1 => Ok(MessageType::Response),
-            2 => Ok(MessageType::Notification),
-            _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-        }
-    }
-
-    fn to_number(&self) -> u8 {
-        self.clone() as u8
-    }
 }
 
 

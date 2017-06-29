@@ -28,6 +28,8 @@ extern crate tokio_service;
 
 // Local externs
 
+#[macro_use]
+extern crate safesec_derive;
 
 // ===========================================================================
 // Modules

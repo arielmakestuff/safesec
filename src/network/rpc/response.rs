@@ -38,30 +38,19 @@
 //! extern crate rmpv;
 //! extern crate safesec;
 //!
+//! #[macro_use]
+//! extern crate safesec_derive;
+//!
 //! use rmpv::Value;
 //! use safesec::error::{Error, GeneralError, Result};
 //! use safesec::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage};
 //! use safesec::network::rpc::response::{ResponseMessage, RpcResponse};
 //!
 //! // Define Error codes
-//! #[derive(Debug, Clone, PartialEq)]
+//! #[derive(Debug, Clone, PartialEq, CodeConvert)]
 //! enum RequestError {
 //!     Nope,
 //!     NuhUh,
-//! }
-//!
-//! impl CodeConvert<RequestError> for RequestError {
-//!     fn from_number(num: u8) -> Result<RequestError> {
-//!         match num {
-//!             0 => Ok(RequestError::Nope),
-//!             1 => Ok(RequestError::NuhUh),
-//!             _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-//!         }
-//!     }
-//!
-//!     fn to_number(&self) -> u8 {
-//!         self.clone() as u8
-//!     }
 //! }
 //!
 //! # fn main() {
@@ -354,26 +343,11 @@ mod tests {
     // --------------------
     // Helpers
     // --------------------
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, CodeConvert)]
     enum TestError {
         One,
         Two,
         Three
-    }
-
-    impl CodeConvert<TestError> for TestError {
-        fn from_number(num: u8) -> Result<TestError> {
-            match num {
-                0 => Ok(TestError::One),
-                1 => Ok(TestError::Two),
-                2 => Ok(TestError::Three),
-                _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-            }
-        }
-
-        fn to_number(&self) -> u8 {
-            self.clone() as u8
-        }
     }
 
     type Response = ResponseMessage<TestError>;

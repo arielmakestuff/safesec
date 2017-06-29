@@ -41,30 +41,19 @@
 //! extern crate rmpv;
 //! extern crate safesec;
 //!
+//! #[macro_use]
+//! extern crate safesec_derive;
+//!
 //! use rmpv::Value;
 //! use safesec::error::{Error, GeneralError, Result};
 //! use safesec::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage};
 //! use safesec::network::rpc::request::{RequestMessage, RpcRequest};
 //!
 //! // Define Request codes
-//! #[derive(Debug, Clone, PartialEq)]
+//! #[derive(Debug, Clone, PartialEq, CodeConvert)]
 //! enum Func {
 //!     Question,
 //!     Answer,
-//! }
-//!
-//! impl CodeConvert<Func> for Func {
-//!     fn from_number(num: u8) -> Result<Func> {
-//!         match num {
-//!             0 => Ok(Func::Question),
-//!             1 => Ok(Func::Answer),
-//!             _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-//!         }
-//!     }
-//!
-//!     fn to_number(&self) -> u8 {
-//!         self.clone() as u8
-//!     }
 //! }
 //!
 //! # fn main() {
@@ -364,7 +353,6 @@ mod tests {
 
     // Third-party imports
     use quickcheck::TestResult;
-    // use rmp::Marker;
     use rmpv::{Utf8String, Value};
 
     // Local imports
@@ -377,26 +365,11 @@ mod tests {
     // --------------------
     // Helpers
     // --------------------
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, CodeConvert)]
     enum TestEnum {
         One,
         Two,
         Three
-    }
-
-    impl CodeConvert<TestEnum> for TestEnum {
-        fn from_number(num: u8) -> Result<TestEnum> {
-            match num {
-                0 => Ok(TestEnum::One),
-                1 => Ok(TestEnum::Two),
-                2 => Ok(TestEnum::Three),
-                _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-            }
-        }
-
-        fn to_number(&self) -> u8 {
-            self.clone() as u8
-        }
     }
 
     // --------------------

@@ -37,30 +37,19 @@
 //! extern crate rmpv;
 //! extern crate safesec;
 //!
+//! #[macro_use]
+//! extern crate safesec_derive;
+//!
 //! use rmpv::Value;
 //! use safesec::error::{Error, GeneralError, Result};
 //! use safesec::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage};
 //! use safesec::network::rpc::notify::{NotificationMessage, RpcNotification};
 //!
 //! // Define Error codes
-//! #[derive(Debug, Clone, PartialEq)]
+//! #[derive(Debug, Clone, PartialEq, CodeConvert)]
 //! enum NotifyCode {
 //!     Yep,
 //!     UhHuh,
-//! }
-//!
-//! impl CodeConvert<NotifyCode> for NotifyCode {
-//!     fn from_number(num: u8) -> Result<NotifyCode> {
-//!         match num {
-//!             0 => Ok(NotifyCode::Yep),
-//!             1 => Ok(NotifyCode::UhHuh),
-//!             _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-//!         }
-//!     }
-//!
-//!     fn to_number(&self) -> u8 {
-//!         self.clone() as u8
-//!     }
 //! }
 //!
 //! # fn main() {
@@ -355,26 +344,11 @@ mod tests {
     // --------------------
     // Helpers
     // --------------------
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, CodeConvert)]
     enum TestCode {
         One,
         Two,
         Three
-    }
-
-    impl CodeConvert<TestCode> for TestCode {
-        fn from_number(num: u8) -> Result<TestCode> {
-            match num {
-                0 => Ok(TestCode::One),
-                1 => Ok(TestCode::Two),
-                2 => Ok(TestCode::Three),
-                _ => Err(Error::new(GeneralError::InvalidValue, num.to_string()))
-            }
-        }
-
-        fn to_number(&self) -> u8 {
-            self.clone() as u8
-        }
     }
 
     type Notice = NotificationMessage<TestCode>;
