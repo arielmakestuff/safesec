@@ -269,7 +269,7 @@ pub trait RpcMessage {
 /// Define methods common to all RPC message types.
 pub trait RpcMessageType {
     /// Return a reference to the inner message.
-    fn message(&self) -> &Message;
+    fn as_message(&self) -> &Message;
 }
 
 

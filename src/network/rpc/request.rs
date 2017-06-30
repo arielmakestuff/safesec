@@ -184,7 +184,7 @@ impl<C> RpcMessage for RequestMessage<C>
 impl<C> RpcMessageType for RequestMessage<C>
     where C: CodeConvert<C>
 {
-    fn message(&self) -> &Message {
+    fn as_message(&self) -> &Message {
         &self.msg
     }
 }

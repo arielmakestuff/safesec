@@ -170,7 +170,7 @@ impl<C> RpcMessage for NotificationMessage<C>
 impl<C> RpcMessageType for NotificationMessage<C>
     where C: CodeConvert<C>
 {
-    fn message(&self) -> &Message {
+    fn as_message(&self) -> &Message {
         &self.msg
     }
 }

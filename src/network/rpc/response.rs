@@ -178,7 +178,7 @@ impl<C> RpcMessage for ResponseMessage<C>
 impl<C> RpcMessageType for ResponseMessage<C>
     where C: CodeConvert<C>
 {
-    fn message(&self) -> &Message {
+    fn as_message(&self) -> &Message {
         &self.msg
     }
 }
