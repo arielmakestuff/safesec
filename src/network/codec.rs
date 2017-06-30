@@ -8,11 +8,11 @@
 // ===========================================================================
 
 // Tokio crates
-extern crate bytes;
-extern crate tokio_io;
+// extern crate bytes;
+// extern crate tokio_io;
 
-extern crate serde;
-extern crate rmp_serde as rmps;
+// extern crate serde;
+// extern crate rmp_serde as rmps;
 
 
 // ===========================================================================
@@ -22,27 +22,16 @@ extern crate rmp_serde as rmps;
 
 // Stdlib imports
 use std::io;
-use std::str;
 
 // Third-party imports
-use self::bytes::BytesMut;
-use self::rmps::{Deserializer, Serializer};
-use self::rmps::decode;
-use self::serde::{Serialize, Deserialize};
-use self::tokio_io::codec::{Decoder, Encoder};
+use bytes::BytesMut;
+use rmps::{Deserializer, Serializer};
+use rmps::decode;
+use rmpv::Value;
+use serde::{Serialize, Deserialize};
+use tokio_io::codec::{Decoder, Encoder};
 
 // Local imports
-
-
-// ===========================================================================
-// Message
-// ===========================================================================
-
-
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-pub struct Message {
-    text: String
-}
 
 
 // ===========================================================================
@@ -99,10 +88,10 @@ impl MsgPackCodec {
 
 
 impl Decoder for MsgPackCodec {
-    type Item = Message;
+    type Item = Value;
     type Error = io::Error;
 
-    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Message>> {
+    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Value>> {
         let result;
         let curpos: usize;
 
@@ -115,7 +104,7 @@ impl Decoder for MsgPackCodec {
         {
             let cursor = io::Cursor::new(&buf[..]);
             let mut de = Deserializer::new(cursor);
-            result = Message::deserialize(&mut de);
+            result = Value::deserialize(&mut de);
             curpos = de.position() as usize;
         }
 
@@ -123,7 +112,7 @@ impl Decoder for MsgPackCodec {
         buf.split_to(curpos);
 
         match result {
-            Ok(m) => Ok(Some(m)),
+            Ok(v) => Ok(Some(v)),
             Err(e) => {
                 match Self::handle_decode_error(e) {
                     Some(err) => Err(err),
@@ -136,10 +125,10 @@ impl Decoder for MsgPackCodec {
 
 
 impl Encoder for MsgPackCodec {
-    type Item = Message;
+    type Item = Value;
     type Error = io::Error;
 
-    fn encode(&mut self, msg: Message, buf: &mut BytesMut) -> io::Result<()> {
+    fn encode(&mut self, msg: Value, buf: &mut BytesMut) -> io::Result<()> {
         let mut tmpbuf = Vec::new();
         msg.serialize(&mut Serializer::new(&mut tmpbuf)).unwrap();
         buf.extend_from_slice(&tmpbuf[..]);
@@ -156,11 +145,19 @@ impl Encoder for MsgPackCodec {
 #[cfg(test)]
 mod tests {
 
-    use super::serde::Serialize;
-    use super::rmps::Serializer;
-    use super::{BytesMut, Message, MsgPackCodec};
-    use super::bytes::buf::FromBuf;
-    use super::{Encoder, Decoder};
+    // --------------------
+    // Imports
+    // --------------------
+    use std::collections::HashMap;
+
+    use bytes::BytesMut;
+    use bytes::buf::FromBuf;
+    use serde::Serialize;
+    use rmps::Serializer;
+    use rmpv::Value;
+    use tokio_io::codec::{Decoder, Encoder};
+
+    use super::MsgPackCodec;
 
     // --------------------
     // Decode tests
@@ -169,7 +166,7 @@ mod tests {
     #[test]
     fn decode_one_message() {
         let mut buf = Vec::new();
-        let msg = Message { text: String::from("ANSWER") };
+        let msg = Value::Map(vec![(Value::from("text"), Value::from("ANSWER"))]);
         msg.serialize(&mut Serializer::new(&mut buf)).unwrap();
 
         let mut codec = MsgPackCodec;
@@ -177,10 +174,16 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let msg = match val {
             Some(m) => m,
-            _ => Message { text: "".to_string() }
+            _ => Value::Map(vec![(Value::from("text"),
+                                  Value::from(""))])
         };
 
-        assert_eq!(msg.text, "ANSWER");
+        let map: HashMap<String, String> = msg.as_map().unwrap()
+            .iter()
+            .map(|v| (v.0.as_str().unwrap().to_string(),
+                      v.1.as_str().unwrap().to_string()))
+            .collect();
+        assert_eq!(map.get(&String::from("text")).unwrap(), &String::from("ANSWER"));
     }
 
 
@@ -191,7 +194,7 @@ mod tests {
         // --------------------
         // A message pack serialized message
         let mut buf = Vec::new();
-        let msg = Message { text: String::from("ANSWER") };
+        let msg = Value::from("ANSWER");
         msg.serialize(&mut Serializer::new(&mut buf)).unwrap();
 
         // --------------------
@@ -229,8 +232,8 @@ mod tests {
         // Two message pack serialized messages
         let mut buf = Vec::new();
         let mut buf2 = Vec::new();
-        let msg1 = Message { text: String::from("ANSWER ONE") };
-        let msg2 = Message { text: String::from("ANSWER TWO") };
+        let msg1 = Value::from("ANSWER ONE");
+        let msg2 = Value::from("ANSWER TWO");
         msg1.serialize(&mut Serializer::new(&mut buf)).unwrap();
         msg2.serialize(&mut Serializer::new(&mut buf2)).unwrap();
 
@@ -261,10 +264,10 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let msg = match val {
             Some(m) => m,
-            _ => Message { text: "".to_string() }
+            _ => Value::from("")
         };
 
-        assert_eq!(msg.text, "ANSWER ONE");
+        assert_eq!(msg.as_str().unwrap(), "ANSWER ONE");
         assert!(buf.len() < buffer_length);
         assert_eq!(buf.len(), newlength);
         assert_eq!(&buf[..], &buf2[..newlength]);
@@ -306,7 +309,7 @@ mod tests {
         // GIVEN
         // --------------------
         // A message and an empty buffer
-        let msg = Message { text: "Hello".to_string() };
+        let msg = Value::from("Hello");
         let buf = Vec::new();
         let mut codec = MsgPackCodec;
 
@@ -327,10 +330,10 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let result = match val {
             Some(m) => m,
-            _ => Message { text: "".to_string() }
+            _ => Value::from("")
         };
 
-        assert_eq!(msg.text, result.text);
+        assert_eq!(msg, result);
     }
 }
 

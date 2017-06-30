@@ -123,7 +123,6 @@
 use std::clone::Clone;
 
 // Third-party imports
-// use rmp::Marker;
 use rmpv::Value;
 
 // Local imports
