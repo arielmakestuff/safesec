@@ -25,7 +25,7 @@ pub use self::rpc::RequestMessage;
 pub use self::rpc::ResponseMessage;
 
 // Traits
-pub use self::rpc::{CodeConvert, RpcMessage};
+pub use self::rpc::{CodeConvert, RpcMessage, RpcMessageType};
 pub use self::rpc::RpcNotice;
 pub use self::rpc::RpcRequest;
 pub use self::rpc::RpcResponse;

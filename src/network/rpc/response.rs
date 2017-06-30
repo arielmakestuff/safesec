@@ -43,7 +43,8 @@
 //!
 //! use rmpv::Value;
 //! use safesec::error::{Error, GeneralError, Result};
-//! use safesec::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage};
+//! use safesec::network::rpc::message::{CodeConvert, Message, MessageType,
+//!                                      RpcMessage, RpcMessageType};
 //! use safesec::network::rpc::response::{ResponseMessage, RpcResponse};
 //!
 //! // Define Error codes
@@ -94,7 +95,8 @@ use std::marker::PhantomData;
 use rmpv::Value;
 
 // Local imports
-use ::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage};
+use ::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage,
+                              RpcMessageType};
 use ::error::Error;
 use ::error::network::rpc::{RpcError, RpcResult};
 
@@ -113,7 +115,8 @@ use ::error::network::rpc::{RpcError, RpcResult};
 /// extern crate safesec;
 ///
 /// use rmpv::Value;
-/// use safesec::network::rpc::message::{MessageType, RpcMessage};
+/// use safesec::network::rpc::message::{MessageType, RpcMessage,
+///                                      RpcMessageType};
 /// use safesec::network::rpc::response::{ResponseMessage, RpcResponse};
 ///
 /// # fn main() {
@@ -135,18 +138,18 @@ pub trait RpcResponse<C>: RpcMessage
     where C: CodeConvert<C>
 {
     fn message_id(&self) -> u32 {
-        let msgid = &self.message()[1];
+        let msgid = &self.as_vec()[1];
         msgid.as_u64().unwrap() as u32
     }
 
     fn error_code(&self) -> C {
-        let errcode = &self.message()[2];
+        let errcode = &self.as_vec()[2];
         let errcode = errcode.as_u64().unwrap() as u8;
         C::from_number(errcode).unwrap()
     }
 
     fn result(&self) -> &Value {
-        let msgresult = &self.message()[3];
+        let msgresult = &self.as_vec()[3];
         msgresult
     }
 }
@@ -162,12 +165,21 @@ pub struct ResponseMessage<C> {
 impl<C> RpcMessage for ResponseMessage<C>
     where C: CodeConvert<C>
 {
-    fn message(&self) -> &Vec<Value> {
-        self.msg.message()
+    fn as_vec(&self) -> &Vec<Value> {
+        self.msg.as_vec()
     }
 
-    fn raw_message(&self) -> &Value {
-        self.msg.raw_message()
+    fn as_value(&self) -> &Value {
+        self.msg.as_value()
+    }
+}
+
+
+impl<C> RpcMessageType for ResponseMessage<C>
+    where C: CodeConvert<C>
+{
+    fn message(&self) -> &Message {
+        &self.msg
     }
 }
 
@@ -243,7 +255,7 @@ impl<C> ResponseMessage<C> where C: CodeConvert<C> {
         // Response is always represented as an array of 4 values
         {
             // Response is always represented as an array of 4 values
-            let array = msg.message();
+            let array = msg.as_vec();
             let arraylen = array.len();
             if arraylen != 4 {
                 let errmsg = format!("expected array length of 4, got {}",
@@ -373,7 +385,7 @@ mod tests {
             let req = Response::new(msgid,
                                     TestError::from_number(err).unwrap(),
                                     Value::from(42));
-            TestResult::from_bool(req.raw_message() == &expected)
+            TestResult::from_bool(req.as_value() == &expected)
         }
     }
 
@@ -657,7 +669,7 @@ mod tests {
     // --------------------
 
     #[test]
-    fn rpcmessage_message() {
+    fn rpcmessage_as_vec() {
         // --------------------
         // GIVEN
         // --------------------
@@ -677,19 +689,19 @@ mod tests {
         // --------------------
         // WHEN
         // --------------------
-        // ResponseMessage::message() method is called
-        let result = res.message();
+        // ResponseMessage::as_vec() method is called
+        let result = res.as_vec();
 
         // --------------------
         // THEN
         // --------------------
         // The contained value is as expected
-        let expected = expected.message();
+        let expected = expected.as_vec();
         assert_eq!(result, expected)
     }
 
     #[test]
-    fn rpcmessage_raw_message() {
+    fn rpcmessage_as_value() {
         // --------------------
         // GIVEN
         // --------------------
@@ -709,14 +721,14 @@ mod tests {
         // --------------------
         // WHEN
         // --------------------
-        // ResponseMessage::raw_message() method is called
-        let result = res.raw_message();
+        // ResponseMessage::as_value() method is called
+        let result = res.as_value();
 
         // --------------------
         // THEN
         // --------------------
         // The contained value is as expected
-        let expected = expected.raw_message();
+        let expected = expected.as_value();
         assert_eq!(result, expected)
     }
 
@@ -752,7 +764,7 @@ mod tests {
         // THEN
         // --------------------
         // The contained value is as expected
-        let expected = expected.message()[1].as_u64().unwrap() as u32;
+        let expected = expected.as_vec()[1].as_u64().unwrap() as u32;
         assert_eq!(result, expected)
     }
 
@@ -784,7 +796,7 @@ mod tests {
         // THEN
         // --------------------
         // The contained value is as expected
-        let code = expected.message()[2].as_u64().unwrap() as u8;
+        let code = expected.as_vec()[2].as_u64().unwrap() as u8;
         let expected = TestError::from_number(code).unwrap();
         assert_eq!(result, expected)
     }
@@ -817,7 +829,7 @@ mod tests {
         // THEN
         // --------------------
         // The contained value is as expected
-        let expected = &expected.message()[3];
+        let expected = &expected.as_vec()[3];
         assert_eq!(result, expected)
     }
 }

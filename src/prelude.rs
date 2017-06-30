@@ -17,7 +17,7 @@ pub use ::network::rpc::RequestMessage;
 pub use ::network::rpc::ResponseMessage;
 
 // Traits
-pub use ::network::rpc::{CodeConvert, RpcMessage};
+pub use ::network::rpc::{CodeConvert, RpcMessage, RpcMessageType};
 pub use ::network::rpc::RpcNotice;
 pub use ::network::rpc::RpcRequest;
 pub use ::network::rpc::RpcResponse;

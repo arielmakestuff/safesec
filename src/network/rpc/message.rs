@@ -15,7 +15,7 @@
 //!
 //! # Types and Traits
 //!
-//! This module provides 2 types and 2 traits as the building blocks of all RPC
+//! This module provides 2 types and 3 traits as the building blocks of all RPC
 //! messages. The types provided are:
 //!
 //! * MessageType
@@ -25,6 +25,7 @@
 //!
 //! * CodeConvert
 //! * RpcMessage
+//! * RpcMessageType
 //!
 //! While each type and trait is discussed in more detail in their definition,
 //! the following summarizes the purpose of each type and trait.
@@ -51,6 +52,10 @@
 //! ## RpcMessage
 //!
 //! This trait provides a interface common to all messages.
+//!
+//! ## RpcMessageType
+//!
+//! This trait provides an interface to access the type's inner Message object.
 //!
 //! # Validation
 //!
@@ -96,11 +101,11 @@
 //! let msg = Message::from(val).unwrap();
 //!
 //! // Grab a reference to the internal value and check against expected
-//! assert_eq!(msg.raw_message(), &expected);
+//! assert_eq!(msg.as_value(), &expected);
 //!
 //! // Check internal array items against expected
 //! let expected_array = expected.as_array().unwrap();
-//! let val_array = msg.message();
+//! let val_array = msg.as_vec();
 //! for i in 0..expected_array.len() {
 //!     assert_eq!(val_array[i], expected_array[i]);
 //! }
@@ -196,11 +201,11 @@ pub enum MessageType {
 /// Define methods common to all RPC messages
 pub trait RpcMessage {
 
-    /// Return the message as a vec containing [`rmpv::Value`] objects.
-    fn message(&self) -> &Vec<Value>;
+    /// View the message as a vector of [`rmpv::Value`] objects.
+    fn as_vec(&self) -> &Vec<Value>;
 
     /// Return a reference to the internally owned [`rmpv::Value`] object.
-    fn raw_message(&self) -> &Value;
+    fn as_value(&self) -> &Value;
 
     /// Return the message's type.
     ///
@@ -210,7 +215,7 @@ pub trait RpcMessage {
     /// value for the message type, then an RpcError::InvalidMessageType
     /// error is returned.
     fn message_type(&self) -> RpcResult<MessageType> {
-        let msgtype: u8 = match self.message()[0].as_u64() {
+        let msgtype: u8 = match self.as_vec()[0].as_u64() {
             Some(v) => v as u8,
             None => unreachable!()
         };
@@ -261,6 +266,13 @@ pub trait RpcMessage {
 }
 
 
+/// Define methods common to all RPC message types.
+pub trait RpcMessageType {
+    /// Return a reference to the inner message.
+    fn message(&self) -> &Message;
+}
+
+
 /// The [`Message`] type is the core underlying type of all RPC messages
 ///
 /// [`Message`] wraps around the [`rmpv::Value`] type. It ensures that the
@@ -274,15 +286,11 @@ pub struct Message {
 
 
 impl RpcMessage for Message {
-    fn message(&self) -> &Vec<Value> {
-        if let Some(array) = self.msg.as_array() {
-            array
-        } else {
-            unreachable!()
-        }
+    fn as_vec(&self) -> &Vec<Value> {
+        self.msg.as_array().unwrap()
     }
 
-    fn raw_message(&self) -> &Value {
+    fn as_value(&self) -> &Value {
         &self.msg
     }
 }
@@ -335,7 +343,7 @@ impl Clone for Message {
     }
 
     fn clone_from(&mut self, source: &Self) {
-        self.msg = source.raw_message().clone();
+        self.msg = source.as_value().clone();
     }
 }
 
@@ -586,7 +594,7 @@ mod tests {
         let expected = v.clone();
         let m = Message { msg: v };
 
-        let msg_val = m.message();
+        let msg_val = m.as_vec();
         assert_eq!(msg_val, expected.as_array().unwrap());
     }
 
@@ -594,19 +602,19 @@ mod tests {
     // Vec<Value> instead of using the from function
     #[test]
     #[should_panic]
-    fn message_message_panic() {
+    fn message_as_vec_panic() {
         let v = Value::from(Value::from(42));
         let m = Message { msg: v };
-        m.message();
+        m.as_vec();
     }
 
     //Message::raw_message
     #[test]
-    fn message_raw_message() {
+    fn message_as_value() {
         let v = Value::from(42);
         let expected = v.clone();
         let msg = Message { msg: v };
-        assert_eq!(msg.raw_message(), &expected);
+        assert_eq!(msg.as_value(), &expected);
     }
 
     // If a non-Value::Array is stored then will always return an error
@@ -696,7 +704,7 @@ mod tests {
 
         let ret = match Message::from(array) {
             Ok(m) => {
-                m.raw_message() == &expected
+                m.as_value() == &expected
             },
             _ => false
         };
