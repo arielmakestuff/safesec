@@ -348,6 +348,15 @@ impl<C> RequestMessage<C> where C: CodeConvert<C> {
 }
 
 
+impl<C> Into<Message> for RequestMessage<C>
+    where C: CodeConvert<C>
+{
+    fn into(self) -> Message {
+        self.msg
+    }
+}
+
+
 // ===========================================================================
 // Tests
 // ===========================================================================
