@@ -10,6 +10,8 @@
 
 pub mod codec;
 pub mod rpc;
+pub mod server;
+// pub mod wipserver;
 
 
 // ===========================================================================

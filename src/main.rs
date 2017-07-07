@@ -21,6 +21,7 @@ extern crate safesec;
 // Third-party imports
 
 // Local imports
+// use safesec::network::server::{SafeSecService, serve};
 
 
 // ===========================================================================
@@ -30,6 +31,9 @@ extern crate safesec;
 
 fn main() {
     println!("Hello, world!");
+    // if let Err(e) = serve(|| Ok(SafeSecService::new())) {
+    //     println!("Server failed with {}", e);
+    // }
 }
 
 

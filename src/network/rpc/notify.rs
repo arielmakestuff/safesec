@@ -337,6 +337,16 @@ impl<C> Into<Message> for NotificationMessage<C>
 }
 
 
+impl<C> Into<Value> for NotificationMessage<C>
+    where C: CodeConvert<C>
+{
+    fn into(self) -> Value {
+        let msg: Message = self.msg.into();
+        msg.into()
+    }
+}
+
+
 // ===========================================================================
 // Tests
 // ===========================================================================

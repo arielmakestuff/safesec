@@ -357,6 +357,16 @@ impl<C> Into<Message> for RequestMessage<C>
 }
 
 
+impl<C> Into<Value> for RequestMessage<C>
+    where C: CodeConvert<C>
+{
+    fn into(self) -> Value {
+        let msg: Message = self.msg.into();
+        msg.into()
+    }
+}
+
+
 // ===========================================================================
 // Tests
 // ===========================================================================
