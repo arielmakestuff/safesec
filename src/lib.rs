@@ -13,6 +13,7 @@
 // Third-party externs
 extern crate bytes;
 extern crate futures;
+extern crate lmdb;
 
 #[cfg(test)]
 #[macro_use]

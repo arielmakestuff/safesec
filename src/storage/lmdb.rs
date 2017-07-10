@@ -4,14 +4,6 @@
 // This file is released under the MIT License.
 
 // ===========================================================================
-// Externs
-// ===========================================================================
-
-
-extern crate lmdb_rs;
-
-
-// ===========================================================================
 // Imports
 // ===========================================================================
 
@@ -22,12 +14,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 // Third-party imports
-use self::lmdb_rs::core::*;
-use self::lmdb_rs::traits::{FromMdbValue, ToMdbValue};
-// use self::lmdb_rs::Environment;
+use lmdb::{Database, DatabaseFlags, Environment, Error as LmdbError, Result as
+           LmdbResult, Transaction, WriteFlags};
 
 // Local imports
-use super::{KeyFileBuilder, KeyFileError, KeyFileResult, KeyFileStore};
+use ::storage::{KeyFileBuilder, KeyFileError, KeyFileResult, KeyFileStore};
 
 
 // ===========================================================================
@@ -48,7 +39,7 @@ fn default_db_path() -> io::Result<PathBuf> {
 
 
 pub struct Init {
-    maxdb: usize,
+    maxdb: u32,
     mode: u32,
     pub path: PathBuf
 }
@@ -59,7 +50,8 @@ impl Init {
     fn new() -> Init {
         Init {
             maxdb: 128,
-            mode: 0b111101101 as u32,
+            // mode: 0b111101101 as u32,
+            mode: 0o600,
             path: default_db_path()
                 .expect("Error with db path"),
          }
@@ -81,11 +73,10 @@ impl Init {
     }
 
     fn create(&self) -> Environment {
-        let env = Environment::new()
-            .max_dbs(self.maxdb)
-            .open(self.path.as_path(), self.mode)
-            .expect("Error opening db file");
-        env
+        Environment::new()
+            .set_max_dbs(self.maxdb)
+            .open_with_permissions(self.path.as_path(), self.mode)
+            .expect("Error opening db file")
     }
 }
 
@@ -97,39 +88,42 @@ impl Init {
 
 pub struct KeyFile {
     pub dbinit: Init,
-    dbenv: Environment,
-    dbhandle: DbHandle
+    env: Environment,
+    db: Database
 }
 
 
 impl KeyFile {
 
-    fn create(env: &Environment, dbname: &str, dbflags: DbFlags) -> MdbResult<DbHandle> {
-        let dbhandle = env.get_db(dbname, dbflags);
-        let dbhandle = match dbhandle {
-            Ok(h) => h,
-            Err(_) => env.create_db(dbname, dbflags)?,
-        };
-        Ok(dbhandle)
+    fn create(env: &Environment, dbname: &str, dbflags: DatabaseFlags) -> LmdbResult<Database> {
+        let db = env.open_db(Some(dbname));
+        match db {
+            Ok(db) => Ok(db),
+            Err(_) => env.create_db(Some(dbname), dbflags),
+        }
     }
 
-    fn dbget<K: ToMdbValue, V: FromMdbValue>(&self, k: &K) -> MdbResult<V> {
-        let value;
-        let session = self.dbenv.new_transaction()?;
-        {
-            let db = session.bind(&self.dbhandle);
-            value = db.get(k)?;
-        }
+    fn dbget<K>(&self, key: &K) -> LmdbResult<Vec<u8>>
+        where K: AsRef<[u8]>,
+    {
+        let session = self.env.begin_ro_txn()?;
+        let value = Vec::from(session.get(self.db.clone(), key)?);
+        session.commit()?;
         Ok(value)
     }
 
-    fn dbset<K: ToMdbValue, V: ToMdbValue>(&self, k: &K, v: &V) -> MdbResult<()> {
-        let session = self.dbenv.new_transaction()?;
-        {
-            let db = session.bind(&self.dbhandle);
-            db.set(k, v)?;
-        }
-        session.commit()
+    fn dbset<K, V>(&self, key: &K, val: &V, flags: Option<WriteFlags>) -> LmdbResult<()>
+        where K: AsRef<[u8]>,
+              V: AsRef<[u8]>
+    {
+        let flags = match flags {
+            None => WriteFlags::empty(),
+            Some(f) => f
+        };
+        let mut session = self.env.begin_rw_txn()?;
+        session.put(self.db.clone(), key, val, flags)?;
+        session.commit()?;
+        Ok(())
     }
 }
 
@@ -144,14 +138,13 @@ impl KeyFileBuilder for KeyFile {
         };
 
         // Create DB
-        let mut dbflags = DbFlags::empty();
-        dbflags.insert(DbCreate);
-        let dbhandle = KeyFile::create(&env, name, dbflags)
+        let dbflags = DatabaseFlags::empty();
+        let db = KeyFile::create(&env, name, dbflags)
             .expect("Error creating DB");
         KeyFile {
             dbinit: init,
-            dbenv: env,
-            dbhandle: dbhandle
+            env: env,
+            db: db
         }
     }
 }
@@ -162,13 +155,13 @@ impl KeyFileStore for KeyFile {
     fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>> {
         match self.dbget(k) {
             Ok(v) => Ok(v),
-            Err(MdbError::NotFound) => Err(KeyFileError::Key(k.clone())),
+            Err(LmdbError::NotFound) => Err(KeyFileError::Key(k.clone())),
             _ => Err(KeyFileError::Other)
         }
     }
 
     fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()> {
-        match self.dbset(k, file) {
+        match self.dbset(k, file, None) {
             Ok(_) => Ok(()),
             _ => Err(KeyFileError::Other)
         }

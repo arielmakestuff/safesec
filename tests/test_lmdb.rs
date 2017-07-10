@@ -19,6 +19,7 @@ extern crate tempdir;
 
 
 // Stdlib imports
+use std::fs;
 
 // Third-party imports
 use chrono::prelude::*;
@@ -40,6 +41,8 @@ fn mktempdir() -> TempDir {
     let suffix = dt.format("%Y%m%d%H%M%S%.9f");
     let name = format!("safesec_test_{}", suffix.to_string());
     let tmpdir = TempDir::new(&name).unwrap();
+    let dbpath = tmpdir.path().join("sec.db");
+    fs::create_dir(&dbpath).unwrap();
     tmpdir
 }
 
