@@ -14,6 +14,7 @@
 extern crate bytes;
 extern crate futures;
 extern crate lmdb;
+extern crate lmdb_sys;
 
 #[cfg(test)]
 #[macro_use]

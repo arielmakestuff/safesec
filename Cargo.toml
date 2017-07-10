@@ -10,6 +10,7 @@ name = "safesec"
 [dependencies]
 # lmdb-rs = "0.7.5"
 lmdb = "0.7"
+lmdb-sys = "0.7"
 
 # Tokio deps
 bytes = "0.4"

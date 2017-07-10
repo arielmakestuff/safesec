@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 // Third-party imports
 use lmdb::{Database, DatabaseFlags, Environment, Error as LmdbError, Result as
            LmdbResult, Transaction, WriteFlags};
+use lmdb_sys::mode_t;
 
 // Local imports
 use ::storage::{KeyFileBuilder, KeyFileError, KeyFileResult, KeyFileStore};
@@ -40,7 +41,7 @@ fn default_db_path() -> io::Result<PathBuf> {
 
 pub struct Init {
     maxdb: u32,
-    mode: u32,
+    mode: mode_t,
     pub path: PathBuf
 }
 
