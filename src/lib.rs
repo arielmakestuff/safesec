@@ -41,6 +41,7 @@ extern crate safesec_derive;
 pub mod error;
 pub mod network;
 pub mod prelude;
+pub mod protocol;
 pub mod storage;
 pub mod util;
 

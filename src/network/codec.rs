@@ -21,14 +21,16 @@
 
 
 // Stdlib imports
+
 use std::io;
 
 // Third-party imports
+
 use bytes::BytesMut;
 use rmps::{Deserializer, Serializer};
 use rmps::decode;
 use rmpv::Value;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tokio_io::codec::{Decoder, Encoder};
 
 // Local imports
@@ -43,45 +45,46 @@ pub struct MsgPackCodec;
 
 
 impl MsgPackCodec {
-
     fn handle_decode_error(err: decode::Error) -> Option<io::Error> {
         match err {
             decode::Error::InvalidDataRead(e) => {
                 match e.kind() {
                     io::ErrorKind::UnexpectedEof => None,
-                    _ => Some(e)
+                    _ => Some(e),
                 }
-            },
+            }
             decode::Error::InvalidMarkerRead(e) => Some(e),
             decode::Error::TypeMismatch(_) => {
                 let errmsg = "msgpack type mismatch".to_string();
                 Some(io::Error::new(io::ErrorKind::InvalidData, errmsg))
-            },
+            }
             decode::Error::OutOfRange => {
                 let errmsg = "msgpack value out of range".to_string();
                 Some(io::Error::new(io::ErrorKind::InvalidData, errmsg))
-            },
+            }
             decode::Error::LengthMismatch(l) => {
                 let errmsg = format!("msgpack length mismatch: {}", l);
                 Some(io::Error::new(io::ErrorKind::InvalidData, errmsg))
-            },
+            }
             decode::Error::Uncategorized(errmsg) => {
                 Some(io::Error::new(io::ErrorKind::Other, errmsg))
-            },
+            }
             decode::Error::Syntax(e) => {
                 let errmsg = format!("msgpack syntax error: {}", e);
                 Some(io::Error::new(io::ErrorKind::InvalidData, errmsg))
-            },
+            }
             decode::Error::Utf8Error(utferr) => {
                 let invalid_byte = utferr.valid_up_to();
-                let errmsg = format!("msgpack utf-8 error: invalid byte starts at {}",
-                                     invalid_byte);
+                let errmsg = format!(
+                    "msgpack utf-8 error: invalid byte starts at {}",
+                    invalid_byte
+                );
                 Some(io::Error::new(io::ErrorKind::InvalidData, errmsg))
-            },
+            }
             decode::Error::DepthLimitExceeded => {
                 let errmsg = "DepthLimitExceeded".to_string();
                 Some(io::Error::new(io::ErrorKind::Other, errmsg))
-            },
+            }
         }
     }
 }
@@ -116,7 +119,7 @@ impl Decoder for MsgPackCodec {
             Err(e) => {
                 match Self::handle_decode_error(e) {
                     Some(err) => Err(err),
-                    None => Ok(None)
+                    None => Ok(None),
                 }
             }
         }
@@ -148,13 +151,14 @@ mod tests {
     // --------------------
     // Imports
     // --------------------
+
     use std::collections::HashMap;
 
     use bytes::BytesMut;
     use bytes::buf::FromBuf;
-    use serde::Serialize;
     use rmps::Serializer;
     use rmpv::Value;
+    use serde::Serialize;
     use tokio_io::codec::{Decoder, Encoder};
 
     use super::MsgPackCodec;
@@ -166,7 +170,8 @@ mod tests {
     #[test]
     fn decode_one_message() {
         let mut buf = Vec::new();
-        let msg = Value::Map(vec![(Value::from("text"), Value::from("ANSWER"))]);
+        let msg =
+            Value::Map(vec![(Value::from("text"), Value::from("ANSWER"))]);
         msg.serialize(&mut Serializer::new(&mut buf)).unwrap();
 
         let mut codec = MsgPackCodec;
@@ -174,16 +179,23 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let msg = match val {
             Some(m) => m,
-            _ => Value::Map(vec![(Value::from("text"),
-                                  Value::from(""))])
+            _ => Value::Map(vec![(Value::from("text"), Value::from(""))]),
         };
 
-        let map: HashMap<String, String> = msg.as_map().unwrap()
+        let map: HashMap<String, String> = msg.as_map()
+            .unwrap()
             .iter()
-            .map(|v| (v.0.as_str().unwrap().to_string(),
-                      v.1.as_str().unwrap().to_string()))
+            .map(|v| {
+                (
+                    v.0.as_str().unwrap().to_string(),
+                    v.1.as_str().unwrap().to_string(),
+                )
+            })
             .collect();
-        assert_eq!(map.get(&String::from("text")).unwrap(), &String::from("ANSWER"));
+        assert_eq!(
+            map.get(&String::from("text")).unwrap(),
+            &String::from("ANSWER")
+        );
     }
 
 
@@ -264,7 +276,7 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let msg = match val {
             Some(m) => m,
-            _ => Value::from("")
+            _ => Value::from(""),
         };
 
         assert_eq!(msg.as_str().unwrap(), "ANSWER ONE");
@@ -295,7 +307,7 @@ mod tests {
         // Ok(None) is returned (ie ask for data to be sent)
         match result {
             Ok(None) => assert!(true),
-            _ => assert!(false)
+            _ => assert!(false),
         };
     }
 
@@ -320,7 +332,7 @@ mod tests {
         let mut buf = BytesMut::from(&buf[..]);
         match codec.encode(msg.clone(), &mut buf) {
             Ok(()) => assert!(true),
-            Err(_) => assert!(false)
+            Err(_) => assert!(false),
         };
 
         // --------------------
@@ -330,7 +342,7 @@ mod tests {
         let val = codec.decode(&mut buf).unwrap();
         let result = match val {
             Some(m) => m,
-            _ => Value::from("")
+            _ => Value::from(""),
         };
 
         assert_eq!(msg, result);
