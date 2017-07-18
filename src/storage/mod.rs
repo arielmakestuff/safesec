@@ -9,6 +9,7 @@
 
 
 // Stdlib imports
+
 use std::path::Path;
 
 // Third-party imports
@@ -24,7 +25,7 @@ use std::path::Path;
 #[derive(Debug)]
 pub enum KeyFileError {
     Key(Vec<u8>),
-    Other
+    Other,
 }
 
 
@@ -50,7 +51,7 @@ pub trait KeyFileBuilder {
 
 
 pub trait KeyFileStore {
-
+    fn exists(&self, k: &Vec<u8>) -> bool;
     fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>>;
     fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>;
     // fn delete(&self, k: &[u8]) -> Result<(), String>;

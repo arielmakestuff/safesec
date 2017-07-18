@@ -143,6 +143,11 @@ pub enum AuthRequest {
     //
     // requires 1 argument: key. Only succeeds if the keyfile already exists.
     DeleteKeyFile,
+
+    // Check if a key exists
+    //
+    // requires 1 argument: key. Always succeeds and returnes true or false.
+    KeyExists,
 }
 
 

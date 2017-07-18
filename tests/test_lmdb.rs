@@ -100,8 +100,13 @@ fn no_key() {
     // Create keyfile store
     let kf = KeyFile::new("temp", Some(dbpath.as_path()));
 
-    // Get non-existent value
+    // Non-existent value
     let key = 42.to_string().into_bytes();
+
+    // Doesn't exist in db
+    assert!(!kf.exists(&key));
+
+    // Get non-existent value
     match kf.get(&key) {
         Err(KeyFileError::Key(e)) => {
             let k = String::from_utf8(e).unwrap();
@@ -124,10 +129,17 @@ fn set_overwrites_value() {
 
     // Set value
     let key = 42.to_string().into_bytes();
+
+    // Key doesn't exist yet
+    assert!(!kf.exists(&key));
+
     for value in 0..5 {
         let v = value.to_string().into_bytes();
         kf.set(&key, &v).unwrap();
     }
+
+    // Key now exists
+    assert!(kf.exists(&key));
 
     // Get value
     let v = kf.get(&key).unwrap();
