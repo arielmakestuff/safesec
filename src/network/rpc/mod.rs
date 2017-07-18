@@ -39,15 +39,18 @@ pub mod response;
 
 
 // Enums
+
 pub use self::message::MessageType;
 
 // Types
+
 pub use self::message::Message;
 pub use self::notify::NotificationMessage;
 pub use self::request::RequestMessage;
 pub use self::response::ResponseMessage;
 
 // Traits
+
 pub use self::message::{CodeConvert, RpcMessage, RpcMessageType};
 pub use self::notify::RpcNotice;
 pub use self::request::RpcRequest;

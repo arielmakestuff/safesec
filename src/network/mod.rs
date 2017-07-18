@@ -19,15 +19,18 @@ pub mod server;
 // ===========================================================================
 
 // Enums
+
 pub use self::rpc::MessageType;
 
 // Types
+
 pub use self::rpc::Message;
 pub use self::rpc::NotificationMessage;
 pub use self::rpc::RequestMessage;
 pub use self::rpc::ResponseMessage;
 
 // Traits
+
 pub use self::rpc::{CodeConvert, RpcMessage, RpcMessageType};
 pub use self::rpc::RpcNotice;
 pub use self::rpc::RpcRequest;

@@ -23,13 +23,15 @@
 pub mod rpc {
 
     // Stdlib imports
+
     use std::fmt;
     use std::result;
 
     // Third-party imports
 
     // Local imports
-    use ::error::{Error, ErrorMessage};
+
+    use error::{Error, ErrorMessage};
 
     pub type RpcResult<T> = result::Result<T, Error<RpcError>>;
 
@@ -54,20 +56,25 @@ pub mod rpc {
         fn message(&self) -> &'static str {
             match *self {
                 RpcError::InvalidMessage => "Invalid message",
-                RpcError::InvalidArrayLength => "Invalid message array length",
+                RpcError::InvalidArrayLength => {
+                    "Invalid message array length"
+                }
                 RpcError::InvalidMessageType => "Invalid message type",
                 RpcError::InvalidIDType => "Invalid message id type",
                 RpcError::InvalidRequest => "Invalid request message",
                 RpcError::InvalidRequestType => "Invalid request type",
                 RpcError::InvalidResponse => "Invalid response message",
                 RpcError::InvalidResponseType => "Invalid response type",
-                RpcError::InvalidNotification => "Invalid notification \
-                                                  message",
-                RpcError::InvalidNotificationType => "Invalid notification \
-                                                      type",
+                RpcError::InvalidNotification => {
+                    "Invalid notification message"
+                }
+                RpcError::InvalidNotificationType => {
+                    "Invalid notification type"
+                }
                 RpcError::InvalidRequestArgs => "Invalid request arguments",
-                RpcError::InvalidNotificationArgs => "Invalid notification \
-                                                      arguments"
+                RpcError::InvalidNotificationArgs => {
+                    "Invalid notification arguments"
+                }
             }
         }
     }

@@ -120,14 +120,17 @@
 
 
 // Stdlib imports
+
 use std::clone::Clone;
 
 // Third-party imports
+
 use rmpv::Value;
 
 // Local imports
-use ::error::{Error, GeneralError, Result};
-use ::error::network::rpc::{RpcError, RpcResult};
+
+use error::{Error, GeneralError, Result};
+use error::network::rpc::{RpcError, RpcResult};
 
 
 // ===========================================================================
@@ -147,7 +150,7 @@ pub fn value_type(arg: &Value) -> String {
         Value::Binary(_) => "bytearray",
         Value::Array(_) => "array",
         Value::Map(_) => "map",
-        Value::Ext(_, _) => "ext"
+        Value::Ext(_, _) => "ext",
     };
     String::from(ret)
 }
@@ -188,7 +191,7 @@ pub enum MessageType {
     Response,
 
     /// A message notifying of some additional information.
-    Notification
+    Notification,
 }
 
 
@@ -199,7 +202,6 @@ pub enum MessageType {
 
 /// Define methods common to all RPC messages
 pub trait RpcMessage {
-
     /// View the message as a vector of [`rmpv::Value`] objects.
     fn as_vec(&self) -> &Vec<Value>;
 
@@ -216,7 +218,7 @@ pub trait RpcMessage {
     fn message_type(&self) -> RpcResult<MessageType> {
         let msgtype: u8 = match self.as_vec()[0].as_u64() {
             Some(v) => v as u8,
-            None => unreachable!()
+            None => unreachable!(),
         };
         match MessageType::from_number(msgtype) {
             Ok(c) => Ok(c),
@@ -235,20 +237,28 @@ pub trait RpcMessage {
     /// If the value is either None or a value that cannot fit into the type
     /// specified by `expected`, then the GeneralError::InvalidType error
     /// is returned.
-    fn check_int(val: Option<u64>, max_value: u64, expected: String) -> Result<u64> {
+    fn check_int(
+        val: Option<u64>,
+        max_value: u64,
+        expected: String,
+    ) -> Result<u64> {
         match val {
             None => {
-                let errmsg = format!("expected {} but got {}",
-                                     expected,
-                                     String::from("None"));
+                let errmsg = format!(
+                    "expected {} but got {}",
+                    expected,
+                    String::from("None")
+                );
                 let err = Error::new(GeneralError::InvalidType, errmsg);
                 Err(err)
-            },
+            }
             Some(v) => {
                 if v > max_value {
-                    let errmsg = format!("expected value <= {} but got value {}",
-                                         max_value.to_string(),
-                                         v.to_string());
+                    let errmsg = format!(
+                        "expected value <= {} but got value {}",
+                        max_value.to_string(),
+                        v.to_string()
+                    );
                     let err = Error::new(GeneralError::InvalidType, errmsg);
                     return Err(err);
                 }
@@ -261,7 +271,6 @@ pub trait RpcMessage {
     fn value_type_name(arg: &Value) -> String {
         value_type(arg)
     }
-
 }
 
 
@@ -280,7 +289,7 @@ pub trait RpcMessageType {
 /// [`Message`]: message/struct.Message.html
 /// [`rmpv::Value`]: https://docs.rs/rmpv/0.4.0/rmpv/enum.Value.html
 pub struct Message {
-    msg: Value
+    msg: Value,
 }
 
 
@@ -296,7 +305,6 @@ impl RpcMessage for Message {
 
 
 impl Message {
-
     /// Converts an [`rmpv::Value`].
     ///
     /// # Errors
@@ -310,27 +318,31 @@ impl Message {
         if let Some(array) = val.as_array() {
             let arraylen = array.len();
             if arraylen < 3 || arraylen > 4 {
-                let errmsg = format!("expected array length of either 3 or 4, got {}",
-                                     arraylen);
+                let errmsg = format!(
+                    "expected array length of either 3 or 4, got {}",
+                    arraylen
+                );
                 let err = Error::new(RpcError::InvalidArrayLength, errmsg);
                 return Err(err);
             }
 
             // Check msg type
-            let msgtype = Self::check_int(array[0].as_u64(),
-                                          u8::max_value() as u64,
-                                          "u8".to_string());
+            let msgtype = Self::check_int(
+                array[0].as_u64(),
+                u8::max_value() as u64,
+                "u8".to_string(),
+            );
             if let Err(e) = msgtype {
                 let err = Error::new(RpcError::InvalidMessageType, e);
                 return Err(err);
             }
         } else {
-            let errmsg = format!("expected array but got {}",
-                                 value_type(&val));
+            let errmsg =
+                format!("expected array but got {}", value_type(&val));
             let err = Error::new(RpcError::InvalidMessage, errmsg);
             return Err(err);
         }
-        Ok(Self {msg: val})
+        Ok(Self { msg: val })
     }
 }
 
@@ -362,18 +374,21 @@ impl Into<Value> for Message {
 #[cfg(test)]
 mod tests {
     // std lib imports
+
     use std::error::Error;
 
     // Third-party imports
+
     use quickcheck::TestResult;
     use rmpv::Value;
 
     // Local imports
-    use ::error;
-    use ::error::network::rpc::RpcError;
-    use ::network::rpc::message::{CodeConvert, Message, MessageType,
-                                  RpcMessage};
+
     use super::value_type;
+    use error;
+    use error::network::rpc::RpcError;
+    use network::rpc::message::{CodeConvert, Message, MessageType,
+                                RpcMessage};
 
     // --------------------
     // Decode tests
@@ -627,14 +642,13 @@ mod tests {
     #[test]
     fn message_from_non_array_always_err() {
         let v = Value::from(42);
-        let expected = format!("expected array but got {}",
-                               value_type(&v));
+        let expected = format!("expected array but got {}", value_type(&v));
         let ret = match Message::from(v) {
             Err(e) => {
                 (e.kind() == RpcError::InvalidMessage &&
-                 e.description() == expected)
-            },
-            _ => false
+                     e.description() == expected)
+            }
+            _ => false,
         };
         assert!(ret)
     }
@@ -703,16 +717,16 @@ mod tests {
     // the array is u8
     #[test]
     fn message_from_valid_value() {
-        let valvec: Vec<Value> = vec![42, 42, 42].iter()
-            .map(|v| Value::from(v.clone())).collect();
+        let valvec: Vec<Value> = vec![42, 42, 42]
+            .iter()
+            .map(|v| Value::from(v.clone()))
+            .collect();
         let array = Value::from(valvec);
         let expected = array.clone();
 
         let ret = match Message::from(array) {
-            Ok(m) => {
-                m.as_value() == &expected
-            },
-            _ => false
+            Ok(m) => m.as_value() == &expected,
+            _ => false,
         };
         assert!(ret)
     }

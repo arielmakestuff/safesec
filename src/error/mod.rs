@@ -100,6 +100,7 @@ pub mod network;
 
 
 // Stdlib imports
+
 use std::convert::From;
 use std::error;
 use std::fmt;
@@ -119,14 +120,14 @@ use std::result;
 /// Intended to be implemented for enums, where the message() method will
 /// return the appropriate message for each enum variant.
 pub trait ErrorMessage {
-
     /// Return the appropriate message for the current object.
     fn message(&self) -> &'static str;
 }
 
 
 enum Repr<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug + fmt::Display + Copy + ErrorMessage,
 {
     Simple(T),
     User(Box<UserError<T>>),
@@ -135,10 +136,11 @@ enum Repr<T>
 
 #[derive(Debug)]
 struct UserError<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug + fmt::Display + Copy + ErrorMessage,
 {
     kind: T,
-    error: Box<error::Error+Send+Sync>,
+    error: Box<error::Error + Send + Sync>,
 }
 
 
@@ -147,14 +149,16 @@ struct UserError<T>
 /// Modeled after `std::io::Error`.
 #[derive(Debug)]
 pub struct Error<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug + fmt::Display + Copy + ErrorMessage,
 {
-    err: Repr<T>
+    err: Repr<T>,
 }
 
 
 impl<T> From<T> for Error<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug + fmt::Display + Copy + ErrorMessage,
 {
     /// Convert an error enum variant into a simple error.
     ///
@@ -168,15 +172,14 @@ impl<T> From<T> for Error<T>
     /// # }
     /// ```
     fn from(kind: T) -> Error<T> {
-        Self {
-            err: Repr::Simple(kind)
-        }
+        Self { err: Repr::Simple(kind) }
     }
 }
 
 
 impl<T> Error<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug + fmt::Display + Copy + ErrorMessage,
 {
     /// Create a new error from a known type of error along with an arbitrary
     /// error payload.
@@ -193,11 +196,12 @@ impl<T> Error<T>
     /// let err2 = Error::new(GeneralError::InvalidValue, err);
     /// ```
     pub fn new<E>(kind: T, error: E) -> Error<T>
-        where E: Into<Box<error::Error+Send+Sync>>
+    where
+        E: Into<Box<error::Error + Send + Sync>>,
     {
         let user_error = UserError {
             kind: kind,
-            error: error.into()
+            error: error.into(),
         };
         Self { err: Repr::User(Box::new(user_error)) }
     }
@@ -230,7 +234,7 @@ impl<T> Error<T>
     /// assert_eq!(msg, "Inner error: StringError(\"yes!\")");
     /// # }
     /// ```
-    pub fn get_ref(&self) -> Option<&(error::Error+Send+Sync+'static)> {
+    pub fn get_ref(&self) -> Option<&(error::Error + Send + Sync + 'static)> {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(ref c) => Some(&*c.error),
@@ -324,7 +328,9 @@ impl<T> Error<T>
     /// assert_eq!(inner.answer(), "42");
     /// # }
     /// ```
-    pub fn get_mut(&mut self) -> Option<&mut (error::Error+Send+Sync+'static)> {
+    pub fn get_mut(
+        &mut self,
+    ) -> Option<&mut (error::Error + Send + Sync + 'static)> {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(ref mut c) => Some(&mut *c.error),
@@ -359,10 +365,10 @@ impl<T> Error<T>
     /// assert_eq!(msg, "Inner error: StringError(\"yes!\")");
     /// # }
     /// ```
-    pub fn into_inner(self) -> Option<Box<error::Error+Send+Sync>> {
+    pub fn into_inner(self) -> Option<Box<error::Error + Send + Sync>> {
         match self.err {
             Repr::Simple(_) => None,
-            Repr::User(c) => Some(c.error)
+            Repr::User(c) => Some(c.error),
         }
     }
 
@@ -407,7 +413,11 @@ impl<T> fmt::Debug for Repr<T>
 
 
 impl<T> fmt::Display for Error<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug
+        + fmt::Display
+        + Copy
+        + ErrorMessage,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self.err {
@@ -419,7 +429,11 @@ impl<T> fmt::Display for Error<T>
 
 
 impl<T> error::Error for Error<T>
-    where T: fmt::Debug+fmt::Display+Copy+ErrorMessage
+where
+    T: fmt::Debug
+        + fmt::Display
+        + Copy
+        + ErrorMessage,
 {
     fn description(&self) -> &str {
         match self.err {

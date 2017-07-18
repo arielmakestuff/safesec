@@ -9,14 +9,16 @@
 
 
 // Stdlib imports
+
 use std::io;
 use std::net::SocketAddr;
 
 // Third-party imports
-use futures::{Async, Future, Poll, Stream, Sink};
+
+use futures::{Async, Future, Poll, Sink, Stream};
 use futures::sync::mpsc;
-use tokio_core::reactor::Handle;
 use tokio_core::net::{Incoming, TcpStream};
+use tokio_core::reactor::Handle;
 
 // Local imports
 
@@ -28,13 +30,14 @@ use tokio_core::net::{Incoming, TcpStream};
 
 pub enum ServerMessage {
     Send(TcpStream, SocketAddr),
-    Shutdown
+    Shutdown,
 }
 
 
 // Helper function to send a server message via a channel
 pub fn sendmsg<T>(loop_handle: &Handle, control: mpsc::Sender<T>, msg: T)
-    where T: 'static
+where
+    T: 'static,
 {
     let f = control.send(msg).then(|_| Ok(()));
     loop_handle.spawn(f);
@@ -57,13 +60,20 @@ pub struct Server {
 
 
 impl Server {
-
-    pub fn new(loop_handle: Handle, stream: Incoming, channel_size: usize) -> Self {
+    pub fn new(
+        loop_handle: Handle,
+        stream: Incoming,
+        channel_size: usize,
+    ) -> Self {
         let control = mpsc::channel::<ServerMessage>(channel_size);
         let handler = mpsc::unbounded::<(TcpStream, SocketAddr)>();
 
-        Self { control: control, handler: handler,
-               listener: stream, loop_handle: loop_handle }
+        Self {
+            control: control,
+            handler: handler,
+            listener: stream,
+            loop_handle: loop_handle,
+        }
     }
 
     pub fn control(&self) -> mpsc::Sender<ServerMessage> {
@@ -71,7 +81,9 @@ impl Server {
         tx.clone()
     }
 
-    fn poll_msg(&mut self) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_msg(
+        &mut self,
+    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
         let msg_poll;
         {
             let (_, ref mut rx) = self.control;
@@ -83,12 +95,10 @@ impl Server {
                 let errmsg = "Error receiving server command";
                 let err = io::Error::new(io::ErrorKind::Other, errmsg);
                 Err(err)
-            },
+            }
 
             // Nothing more will be streamed, close the server down
-            Ok(Async::Ready(None)) => {
-                Ok(Async::Ready(None))
-            },
+            Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
 
             // Send socket through handler channel
             Ok(Async::Ready(Some(ServerMessage::Send(socket, addr)))) => {
@@ -97,7 +107,7 @@ impl Server {
                 let f = tx.send((socket, addr)).then(|_| Ok(()));
                 self.loop_handle.spawn(f);
                 Ok(Async::NotReady)
-            },
+            }
 
             Ok(Async::Ready(Some(ServerMessage::Shutdown))) => {
                 {
@@ -106,13 +116,15 @@ impl Server {
                 }
                 Ok(Async::NotReady)
                 // self.poll_msg()
-            },
+            }
 
-            Ok(Async::NotReady) => Ok(Async::NotReady)
+            Ok(Async::NotReady) => Ok(Async::NotReady),
         }
     }
 
-    fn poll_listener(&mut self) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_listener(
+        &mut self,
+    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
         let (ref tx, _) = self.control;
         let tx = tx.clone();
         let listener_poll = self.listener.poll();
@@ -124,14 +136,19 @@ impl Server {
             Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
 
             Ok(Async::Ready(Some((stream, addr)))) => {
-                sendmsg(&self.loop_handle, tx,
-                        ServerMessage::Send(stream, addr));
+                sendmsg(
+                    &self.loop_handle,
+                    tx,
+                    ServerMessage::Send(stream, addr),
+                );
                 Ok(Async::NotReady)
-            },
+            }
         }
     }
 
-    fn poll_handler(&mut self) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_handler(
+        &mut self,
+    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
         let (_, ref mut rx) = self.handler;
         let handler_poll = rx.poll();
         match handler_poll {
@@ -139,9 +156,9 @@ impl Server {
                 let errmsg = "Error receiving socket";
                 let err = io::Error::new(io::ErrorKind::Other, errmsg);
                 Err(err)
-            },
+            }
 
-            Ok(v) => Ok(v)
+            Ok(v) => Ok(v),
         }
     }
 }
@@ -160,13 +177,11 @@ impl Stream for Server {
             let res = self.poll_listener();
             match res {
                 // If listener not ready, check handler
-                Ok(Async::NotReady) | Ok(Async::Ready(None)) => {
-                    self.poll_handler()
-                },
-                _ => res
+                Ok(Async::NotReady) |
+                Ok(Async::Ready(None)) => self.poll_handler(),
+                _ => res,
             }
         }
-
         // Return message
         else {
             msg

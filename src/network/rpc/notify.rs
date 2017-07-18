@@ -85,16 +85,19 @@
 
 
 // Stdlib imports
+
 use std::marker::PhantomData;
 
 // Third-party imports
+
 use rmpv::Value;
 
 // Local imports
-use ::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage,
-                              RpcMessageType, value_type};
-use ::error::Error;
-use ::error::network::rpc::{RpcError, RpcResult};
+
+use error::Error;
+use error::network::rpc::{RpcError, RpcResult};
+use network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage,
+                            RpcMessageType, value_type};
 
 
 // ===========================================================================
@@ -130,7 +133,8 @@ use ::error::network::rpc::{RpcError, RpcResult};
 /// # }
 /// ```
 pub trait RpcNotice<C>: RpcMessage
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     fn message_code(&self) -> C {
         let msgcode = &self.as_vec()[1];
@@ -147,15 +151,17 @@ pub trait RpcNotice<C>: RpcMessage
 
 /// A representation of the Notification RPC message type.
 pub struct NotificationMessage<C>
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     msg: Message,
-    msgtype: PhantomData<C>
+    msgtype: PhantomData<C>,
 }
 
 
 impl<C> RpcMessage for NotificationMessage<C>
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     fn as_vec(&self) -> &Vec<Value> {
         self.msg.as_vec()
@@ -168,7 +174,8 @@ impl<C> RpcMessage for NotificationMessage<C>
 
 
 impl<C> RpcMessageType for NotificationMessage<C>
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     fn as_message(&self) -> &Message {
         &self.msg
@@ -176,11 +183,17 @@ impl<C> RpcMessageType for NotificationMessage<C>
 }
 
 
-impl<C> RpcNotice<C> for NotificationMessage<C> where C: CodeConvert<C> {}
+impl<C> RpcNotice<C> for NotificationMessage<C>
+where
+    C: CodeConvert<C>,
+{
+}
 
 
-impl<C> NotificationMessage<C> where C: CodeConvert<C> {
-
+impl<C> NotificationMessage<C>
+where
+    C: CodeConvert<C>,
+{
     /// Create a brand new NotificationMessage object.
     ///
     /// # Example
@@ -209,8 +222,11 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
         let msgval = Value::from(vec![msgtype, notifycode, msgargs]);
 
         match Message::from(msgval) {
-            Ok(msg) => Self { msg: msg, msgtype: PhantomData },
-            Err(_) => unreachable!()
+            Ok(msg) => Self {
+                msg: msg,
+                msgtype: PhantomData,
+            },
+            Err(_) => unreachable!(),
         }
     }
 
@@ -250,23 +266,29 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
             let array = msg.as_vec();
             let arraylen = array.len();
             if arraylen != 3 {
-                let errmsg = format!("expected array length of 3, got {}",
-                                     arraylen);
+                let errmsg =
+                    format!("expected array length of 3, got {}", arraylen);
                 let err = Error::new(RpcError::InvalidArrayLength, errmsg);
                 return Err(err);
             }
 
             // Run all check functions and return the first error generated
             let funcvec: Vec<fn(&Value) -> RpcResult<()>>;
-            funcvec = vec![Self::check_message_type, Self::check_message_code,
-                           Self::check_message_args];
+            funcvec = vec![
+                Self::check_message_type,
+                Self::check_message_code,
+                Self::check_message_args,
+            ];
 
             for (i, func) in funcvec.iter().enumerate() {
                 func(&array[i])?;
             }
         }
 
-        Ok(Self {msg: msg, msgtype: PhantomData})
+        Ok(Self {
+            msg: msg,
+            msgtype: PhantomData,
+        })
     }
 
     // Checks that the message type parameter of a Notification message is
@@ -277,11 +299,14 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
         let msgtype = msgtype.as_u64().unwrap() as u8;
         let expected_msgtype = MessageType::Notification.to_number();
         if msgtype != expected_msgtype {
-            let errmsg = format!("expected {} for message type (ie \
-                                  MessageType::Notification), got {}",
-                                 expected_msgtype, msgtype);
+            let errmsg = format!(
+                "expected {} for message type (ie \
+                 MessageType::Notification), got {}",
+                expected_msgtype,
+                msgtype
+            );
             let err = Error::new(RpcError::InvalidMessageType, errmsg);
-            return Err(err)
+            return Err(err);
         }
         Ok(())
     }
@@ -291,19 +316,21 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
     //
     // This is a private method used by the public from() method
     fn check_message_code(msgcode: &Value) -> RpcResult<()> {
-        let msgcode = Self::check_int(msgcode.as_u64(),
-                                      u8::max_value() as u64,
-                                      "u8".to_string());
+        let msgcode = Self::check_int(
+            msgcode.as_u64(),
+            u8::max_value() as u64,
+            "u8".to_string(),
+        );
         match msgcode {
             Err(e) => {
                 let err = Error::new(RpcError::InvalidNotification, e);
-                return Err(err)
+                return Err(err);
             }
             Ok(v) => {
                 let u8val = v as u8;
                 if let Err(e) = C::from_number(u8val) {
                     let err = Error::new(RpcError::InvalidNotification, e);
-                    return Err(err)
+                    return Err(err);
                 }
             }
         }
@@ -317,11 +344,12 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
     fn check_message_args(msgargs: &Value) -> RpcResult<()> {
         let args = msgargs.as_array();
         if args.is_none() {
-            let errmsg = format!("expected array for request arguments but \
-                                  got {}",
-                                 value_type(&msgargs));
+            let errmsg = format!(
+                "expected array for request arguments but got {}",
+                value_type(&msgargs)
+            );
             let err = Error::new(RpcError::InvalidNotificationArgs, errmsg);
-            return Err(err)
+            return Err(err);
         }
         Ok(())
     }
@@ -329,7 +357,8 @@ impl<C> NotificationMessage<C> where C: CodeConvert<C> {
 
 
 impl<C> Into<Message> for NotificationMessage<C>
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     fn into(self) -> Message {
         self.msg
@@ -338,7 +367,8 @@ impl<C> Into<Message> for NotificationMessage<C>
 
 
 impl<C> Into<Value> for NotificationMessage<C>
-    where C: CodeConvert<C>
+where
+    C: CodeConvert<C>,
 {
     fn into(self) -> Value {
         let msg: Message = self.msg.into();
@@ -358,18 +388,21 @@ mod tests {
     // Imports
     // --------------------
     // Stdlib imports
+
     use std::error::Error as StdError;
 
     // Third-party imports
+
     use quickcheck::TestResult;
     use rmpv::{Utf8String, Value};
 
     // Local imports
-    use ::error::{Error, GeneralError, Result};
-    use ::error::network::rpc::RpcError;
-    use ::network::rpc::message::{CodeConvert, Message, MessageType, RpcMessage,
-                                  value_type};
-    use ::network::rpc::notify::{RpcNotice, NotificationMessage};
+
+    use error::{Error, GeneralError, Result};
+    use error::network::rpc::RpcError;
+    use network::rpc::message::{CodeConvert, Message, MessageType,
+                                RpcMessage, value_type};
+    use network::rpc::notify::{NotificationMessage, RpcNotice};
 
     // --------------------
     // Helpers
@@ -378,7 +411,7 @@ mod tests {
     enum TestCode {
         One,
         Two,
-        Three
+        Three,
     }
 
     type Notice = NotificationMessage<TestCode>;
@@ -445,8 +478,8 @@ mod tests {
                 let expected = "expected array length of 3, got 4";
                 assert_eq!(e.kind(), RpcError::InvalidArrayLength);
                 assert_eq!(e.description(), expected);
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
     }
 
@@ -478,14 +511,16 @@ mod tests {
         // Error is returned
         match result {
             Err(e) => {
-                let expected = format!("expected {} for message type (ie \
-                                        MessageType::Notification), got {}",
-                                       MessageType::Notification.to_number(),
-                                       expected);
+                let expected = format!(
+                    "expected {} for message type (ie \
+                     MessageType::Notification), got {}",
+                    MessageType::Notification.to_number(),
+                    expected
+                );
                 assert_eq!(e.kind(), RpcError::InvalidMessageType);
                 assert_eq!(e.description(), expected);
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
     }
 
@@ -519,8 +554,8 @@ mod tests {
                 let errmsg = "expected u8 but got None";
                 assert_eq!(e.kind(), RpcError::InvalidNotification);
                 assert_eq!(e.description(), errmsg);
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
     }
 
@@ -633,12 +668,14 @@ mod tests {
         // Error is returned for the invalid message id
         match result {
             Err(e) => {
-                let errmsg = format!("expected array for request arguments but got {}",
-                                     value_type(&msgval));
+                let errmsg = format!(
+                    "expected array for request arguments but got {}",
+                    value_type(&msgval)
+                );
                 assert_eq!(e.kind(), RpcError::InvalidNotificationArgs);
                 assert_eq!(e.description(), errmsg);
-            },
-            _ => assert!(false)
+            }
+            _ => assert!(false),
         }
     }
 
