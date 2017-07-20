@@ -51,9 +51,18 @@ pub trait KeyFileBuilder {
 
 
 pub trait KeyFileStore {
-    fn exists(&self, k: &Vec<u8>) -> bool;
-    fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>>;
-    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>;
+    fn exists<K>(&self, k: &K) -> bool
+    where
+        K: AsRef<[u8]>;
+
+    fn get<K>(&self, k: &K) -> KeyFileResult<Vec<u8>>
+    where
+        K: AsRef<[u8]>;
+
+    fn set<K, V>(&self, k: &K, file: &V) -> KeyFileResult<()>
+    where
+        K: AsRef<[u8]>,
+        V: AsRef<[u8]>;
     // fn delete(&self, k: &[u8]) -> Result<(), String>;
 }
 

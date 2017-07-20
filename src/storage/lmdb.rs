@@ -162,7 +162,9 @@ impl KeyFileBuilder for KeyFile {
 
 // TODO: handle all LmdbError variants
 impl KeyFileStore for KeyFile {
-    fn exists(&self, k: &Vec<u8>) -> bool
+    fn exists<K>(&self, k: &K) -> bool
+    where
+        K: AsRef<[u8]>,
     {
         match self.dbget(k) {
             Ok(_) => true,
@@ -170,16 +172,24 @@ impl KeyFileStore for KeyFile {
         }
     }
 
-    fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>>
+    fn get<K>(&self, k: &K) -> KeyFileResult<Vec<u8>>
+    where
+        K: AsRef<[u8]>,
     {
         match self.dbget(k) {
             Ok(v) => Ok(v),
-            Err(LmdbError::NotFound) => Err(KeyFileError::Key(k.clone())),
+            Err(LmdbError::NotFound) => {
+                let key = Vec::from(k);
+                Err(KeyFileError::Key(key))
+            }
             _ => Err(KeyFileError::Other),
         }
     }
 
-    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>
+    fn set<K, V>(&self, k: &K, file: &V) -> KeyFileResult<()>
+    where
+        K: AsRef<[u8]>,
+        V: AsRef<[u8]>,
     {
         match self.dbset(k, file, None) {
             Ok(_) => Ok(()),
