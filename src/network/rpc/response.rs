@@ -141,18 +141,21 @@ pub trait RpcResponse<C>: RpcMessage
 where
     C: CodeConvert<C>,
 {
-    fn message_id(&self) -> u32 {
+    fn message_id(&self) -> u32
+    {
         let msgid = &self.as_vec()[1];
         msgid.as_u64().unwrap() as u32
     }
 
-    fn error_code(&self) -> C {
+    fn error_code(&self) -> C
+    {
         let errcode = &self.as_vec()[2];
         let errcode = errcode.as_u64().unwrap() as u8;
         C::from_number(errcode).unwrap()
     }
 
-    fn result(&self) -> &Value {
+    fn result(&self) -> &Value
+    {
         let msgresult = &self.as_vec()[3];
         msgresult
     }
@@ -170,11 +173,13 @@ impl<C> RpcMessage for ResponseMessage<C>
 where
     C: CodeConvert<C>,
 {
-    fn as_vec(&self) -> &Vec<Value> {
+    fn as_vec(&self) -> &Vec<Value>
+    {
         self.msg.as_vec()
     }
 
-    fn as_value(&self) -> &Value {
+    fn as_value(&self) -> &Value
+    {
         self.msg.as_value()
     }
 }
@@ -184,7 +189,8 @@ impl<C> RpcMessageType for ResponseMessage<C>
 where
     C: CodeConvert<C>,
 {
-    fn as_message(&self) -> &Message {
+    fn as_message(&self) -> &Message
+    {
         &self.msg
     }
 }
@@ -222,7 +228,8 @@ where
     ///                         Value::from(42));
     /// # }
     /// ```
-    pub fn new(msgid: u32, errcode: C, result: Value) -> Self {
+    pub fn new(msgid: u32, errcode: C, result: Value) -> Self
+    {
         let msgtype = Value::from(MessageType::Response as u8);
         let msgid = Value::from(msgid);
         let errcode = Value::from(errcode.to_number());
@@ -266,7 +273,8 @@ where
     /// let res = Response::from(msg).unwrap();
     /// # }
     /// ```
-    pub fn from(msg: Message) -> RpcResult<Self> {
+    pub fn from(msg: Message) -> RpcResult<Self>
+    {
         // Response is always represented as an array of 4 values
         {
             // Response is always represented as an array of 4 values
@@ -300,7 +308,8 @@ where
     // Checks that the message type parameter of a Response message is valid
     //
     // This is a private method used by the public from() method
-    fn check_message_type(msgtype: &Value) -> RpcResult<()> {
+    fn check_message_type(msgtype: &Value) -> RpcResult<()>
+    {
         let msgtype = msgtype.as_u64().unwrap() as u8;
         let expected_msgtype = MessageType::Response.to_number();
         if msgtype != expected_msgtype {
@@ -319,7 +328,8 @@ where
     // Checks that the message id parameter of a Response message is valid
     //
     // This is a private method used by the public from() method
-    fn check_message_id(msgid: &Value) -> RpcResult<()> {
+    fn check_message_id(msgid: &Value) -> RpcResult<()>
+    {
         let msgid = Self::check_int(
             msgid.as_u64(),
             u32::max_value() as u64,
@@ -335,7 +345,8 @@ where
     // Checks that the error code parameter of a Response message is valid
     //
     // This is a private method used by the public from() method
-    fn check_error_code(msgcode: &Value) -> RpcResult<()> {
+    fn check_error_code(msgcode: &Value) -> RpcResult<()>
+    {
         let msgcode = Self::check_int(
             msgcode.as_u64(),
             u8::max_value() as u64,
@@ -363,7 +374,8 @@ impl<C> Into<Message> for ResponseMessage<C>
 where
     C: CodeConvert<C>,
 {
-    fn into(self) -> Message {
+    fn into(self) -> Message
+    {
         self.msg
     }
 }
@@ -373,7 +385,8 @@ impl<C> Into<Value> for ResponseMessage<C>
 where
     C: CodeConvert<C>,
 {
-    fn into(self) -> Value {
+    fn into(self) -> Value
+    {
         let msg: Message = self.msg.into();
         msg.into()
     }
@@ -448,7 +461,8 @@ mod tests {
     // --------------------
 
     #[test]
-    fn from_invalid_arraylen() {
+    fn from_invalid_arraylen()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -484,7 +498,8 @@ mod tests {
     }
 
     #[test]
-    fn from_invalid_messagetype() {
+    fn from_invalid_messagetype()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -526,7 +541,8 @@ mod tests {
     }
 
     #[test]
-    fn from_message_id_invalid_type() {
+    fn from_message_id_invalid_type()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -605,7 +621,8 @@ mod tests {
     }
 
     #[test]
-    fn from_error_code_invalid_type() {
+    fn from_error_code_invalid_type()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -726,7 +743,8 @@ mod tests {
     // --------------------
 
     #[test]
-    fn rpcmessage_as_vec() {
+    fn rpcmessage_as_vec()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -758,7 +776,8 @@ mod tests {
     }
 
     #[test]
-    fn rpcmessage_as_value() {
+    fn rpcmessage_as_value()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -794,7 +813,8 @@ mod tests {
     // --------------------
 
     #[test]
-    fn rpcresponse_message_id() {
+    fn rpcresponse_message_id()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -826,7 +846,8 @@ mod tests {
     }
 
     #[test]
-    fn rpcresponse_error_code() {
+    fn rpcresponse_error_code()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -859,7 +880,8 @@ mod tests {
     }
 
     #[test]
-    fn rpcresponse_result() {
+    fn rpcresponse_result()
+    {
         // --------------------
         // GIVEN
         // --------------------

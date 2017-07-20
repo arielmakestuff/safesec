@@ -45,7 +45,8 @@ pub struct MsgPackCodec;
 
 
 impl MsgPackCodec {
-    fn handle_decode_error(err: decode::Error) -> Option<io::Error> {
+    fn handle_decode_error(err: decode::Error) -> Option<io::Error>
+    {
         match err {
             decode::Error::InvalidDataRead(e) => {
                 match e.kind() {
@@ -94,7 +95,8 @@ impl Decoder for MsgPackCodec {
     type Item = Value;
     type Error = io::Error;
 
-    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Value>> {
+    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Value>>
+    {
         let result;
         let curpos: usize;
 
@@ -131,7 +133,8 @@ impl Encoder for MsgPackCodec {
     type Item = Value;
     type Error = io::Error;
 
-    fn encode(&mut self, msg: Value, buf: &mut BytesMut) -> io::Result<()> {
+    fn encode(&mut self, msg: Value, buf: &mut BytesMut) -> io::Result<()>
+    {
         let mut tmpbuf = Vec::new();
         msg.serialize(&mut Serializer::new(&mut tmpbuf)).unwrap();
         buf.extend_from_slice(&tmpbuf[..]);
@@ -168,7 +171,8 @@ mod tests {
     // --------------------
 
     #[test]
-    fn decode_one_message() {
+    fn decode_one_message()
+    {
         let mut buf = Vec::new();
         let msg =
             Value::Map(vec![(Value::from("text"), Value::from("ANSWER"))]);
@@ -200,7 +204,8 @@ mod tests {
 
 
     #[test]
-    fn decode_incomplete_message() {
+    fn decode_incomplete_message()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -237,7 +242,8 @@ mod tests {
     }
 
     #[test]
-    fn decode_complete_and_incomplete() {
+    fn decode_complete_and_incomplete()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -286,7 +292,8 @@ mod tests {
     }
 
     #[test]
-    fn decode_empty_buffer() {
+    fn decode_empty_buffer()
+    {
         // --------------------
         // GIVEN
         // --------------------
@@ -316,7 +323,8 @@ mod tests {
     // --------------------
 
     #[test]
-    fn encode_message() {
+    fn encode_message()
+    {
         // --------------------
         // GIVEN
         // --------------------

@@ -171,7 +171,8 @@ where
     /// let err = Error::from(GeneralError::InvalidType);
     /// # }
     /// ```
-    fn from(kind: T) -> Error<T> {
+    fn from(kind: T) -> Error<T>
+    {
         Self { err: Repr::Simple(kind) }
     }
 }
@@ -234,7 +235,8 @@ where
     /// assert_eq!(msg, "Inner error: StringError(\"yes!\")");
     /// # }
     /// ```
-    pub fn get_ref(&self) -> Option<&(error::Error + Send + Sync + 'static)> {
+    pub fn get_ref(&self) -> Option<&(error::Error + Send + Sync + 'static)>
+    {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(ref c) => Some(&*c.error),
@@ -328,9 +330,9 @@ where
     /// assert_eq!(inner.answer(), "42");
     /// # }
     /// ```
-    pub fn get_mut(
-        &mut self,
-    ) -> Option<&mut (error::Error + Send + Sync + 'static)> {
+    pub fn get_mut(&mut self)
+        -> Option<&mut (error::Error + Send + Sync + 'static)>
+    {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(ref mut c) => Some(&mut *c.error),
@@ -365,7 +367,8 @@ where
     /// assert_eq!(msg, "Inner error: StringError(\"yes!\")");
     /// # }
     /// ```
-    pub fn into_inner(self) -> Option<Box<error::Error + Send + Sync>> {
+    pub fn into_inner(self) -> Option<Box<error::Error + Send + Sync>>
+    {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(c) => Some(c.error),
@@ -389,7 +392,8 @@ where
     /// assert_eq!(err.kind(), GeneralError::InvalidValue);
     /// # }
     /// ```
-    pub fn kind(&self) -> T {
+    pub fn kind(&self) -> T
+    {
         match self.err {
             Repr::Simple(kind) => kind,
             Repr::User(ref c) => c.kind,
@@ -419,7 +423,8 @@ where
         + Copy
         + ErrorMessage,
 {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result
+    {
         match self.err {
             Repr::Simple(kind) => write!(fmt, "{}", kind.to_string()),
             Repr::User(ref c) => c.error.fmt(fmt),
@@ -435,14 +440,16 @@ where
         + Copy
         + ErrorMessage,
 {
-    fn description(&self) -> &str {
+    fn description(&self) -> &str
+    {
         match self.err {
             Repr::Simple(_) => &*self.kind().message(),
             Repr::User(ref c) => c.error.description(),
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&error::Error>
+    {
         match self.err {
             Repr::Simple(_) => None,
             Repr::User(ref c) => c.error.cause(),
@@ -467,7 +474,8 @@ pub enum GeneralError {
 
 
 impl ErrorMessage for GeneralError {
-    fn message(&self) -> &'static str {
+    fn message(&self) -> &'static str
+    {
         match *self {
             GeneralError::InvalidType => "Invalid type",
             GeneralError::InvalidValue => "Invalid value",
@@ -477,7 +485,8 @@ impl ErrorMessage for GeneralError {
 
 
 impl fmt::Display for GeneralError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result
+    {
         write!(fmt, "{}", self.message().to_string())
     }
 }

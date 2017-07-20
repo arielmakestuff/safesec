@@ -53,7 +53,8 @@ pub mod rpc {
     }
 
     impl ErrorMessage for RpcError {
-        fn message(&self) -> &'static str {
+        fn message(&self) -> &'static str
+        {
             match *self {
                 RpcError::InvalidMessage => "Invalid message",
                 RpcError::InvalidArrayLength => {
@@ -80,7 +81,8 @@ pub mod rpc {
     }
 
     impl fmt::Display for RpcError {
-        fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result
+        {
             write!(fmt, "{}", self.message().to_string())
         }
     }

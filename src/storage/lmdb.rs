@@ -30,7 +30,8 @@ use storage::{KeyFileBuilder, KeyFileError, KeyFileResult, KeyFileStore};
 // ===========================================================================
 
 
-fn default_db_path() -> io::Result<PathBuf> {
+fn default_db_path() -> io::Result<PathBuf>
+{
     let mut dbpath = env::current_dir()?;
     dbpath.push("sec.db");
     Ok(dbpath)
@@ -50,7 +51,8 @@ pub struct Init {
 
 
 impl Init {
-    fn new() -> Init {
+    fn new() -> Init
+    {
         Init {
             maxdb: 128,
             // mode: 0b111101101 as u32,
@@ -69,12 +71,14 @@ impl Init {
     //     self
     // }
 
-    fn path(&mut self, val: &Path) -> &Self {
+    fn path(&mut self, val: &Path) -> &Self
+    {
         self.path = PathBuf::from(val);
         self
     }
 
-    fn create(&self) -> Environment {
+    fn create(&self) -> Environment
+    {
         Environment::new()
             .set_max_dbs(self.maxdb)
             .open_with_permissions(self.path.as_path(), self.mode)
@@ -96,11 +100,9 @@ pub struct KeyFile {
 
 
 impl KeyFile {
-    fn create(
-        env: &Environment,
-        dbname: &str,
-        dbflags: DatabaseFlags,
-    ) -> LmdbResult<Database> {
+    fn create(env: &Environment, dbname: &str, dbflags: DatabaseFlags)
+        -> LmdbResult<Database>
+    {
         let db = env.open_db(Some(dbname));
         match db {
             Ok(db) => Ok(db),
@@ -118,12 +120,8 @@ impl KeyFile {
         Ok(value)
     }
 
-    fn dbset<K, V>(
-        &self,
-        key: &K,
-        val: &V,
-        flags: Option<WriteFlags>,
-    ) -> LmdbResult<()>
+    fn dbset<K, V>(&self, key: &K, val: &V, flags: Option<WriteFlags>)
+        -> LmdbResult<()>
     where
         K: AsRef<[u8]>,
         V: AsRef<[u8]>,
@@ -141,7 +139,8 @@ impl KeyFile {
 
 
 impl KeyFileBuilder for KeyFile {
-    fn new(name: &str, envpath: Option<&Path>) -> KeyFile {
+    fn new(name: &str, envpath: Option<&Path>) -> KeyFile
+    {
         let mut init = Init::new();
         let env = match envpath {
             Some(p) => init.path(p).create(),
@@ -163,14 +162,16 @@ impl KeyFileBuilder for KeyFile {
 
 // TODO: handle all LmdbError variants
 impl KeyFileStore for KeyFile {
-    fn exists(&self, k: &Vec<u8>) -> bool {
+    fn exists(&self, k: &Vec<u8>) -> bool
+    {
         match self.dbget(k) {
             Ok(_) => true,
             Err(_) => false,
         }
     }
 
-    fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>> {
+    fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>>
+    {
         match self.dbget(k) {
             Ok(v) => Ok(v),
             Err(LmdbError::NotFound) => Err(KeyFileError::Key(k.clone())),
@@ -178,7 +179,8 @@ impl KeyFileStore for KeyFile {
         }
     }
 
-    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()> {
+    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>
+    {
         match self.dbset(k, file, None) {
             Ok(_) => Ok(()),
             _ => Err(KeyFileError::Other),

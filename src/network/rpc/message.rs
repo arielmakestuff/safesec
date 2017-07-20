@@ -139,7 +139,8 @@ use error::network::rpc::{RpcError, RpcResult};
 
 
 // Return the name of a Value variant
-pub fn value_type(arg: &Value) -> String {
+pub fn value_type(arg: &Value) -> String
+{
     let ret = match *arg {
         Value::Nil => "nil",
         Value::Boolean(_) => "bool",
@@ -215,7 +216,8 @@ pub trait RpcMessage {
     /// If the internally owned [`rmpv::Value`] object contains an invalid
     /// value for the message type, then an RpcError::InvalidMessageType
     /// error is returned.
-    fn message_type(&self) -> RpcResult<MessageType> {
+    fn message_type(&self) -> RpcResult<MessageType>
+    {
         let msgtype: u8 = match self.as_vec()[0].as_u64() {
             Some(v) => v as u8,
             None => unreachable!(),
@@ -237,11 +239,9 @@ pub trait RpcMessage {
     /// If the value is either None or a value that cannot fit into the type
     /// specified by `expected`, then the GeneralError::InvalidType error
     /// is returned.
-    fn check_int(
-        val: Option<u64>,
-        max_value: u64,
-        expected: String,
-    ) -> Result<u64> {
+    fn check_int(val: Option<u64>, max_value: u64, expected: String)
+        -> Result<u64>
+    {
         match val {
             None => {
                 let errmsg = format!(
@@ -268,7 +268,8 @@ pub trait RpcMessage {
     }
 
     /// Return the string name of an [`rmpv::Value`] object.
-    fn value_type_name(arg: &Value) -> String {
+    fn value_type_name(arg: &Value) -> String
+    {
         value_type(arg)
     }
 }
@@ -294,11 +295,13 @@ pub struct Message {
 
 
 impl RpcMessage for Message {
-    fn as_vec(&self) -> &Vec<Value> {
+    fn as_vec(&self) -> &Vec<Value>
+    {
         self.msg.as_array().unwrap()
     }
 
-    fn as_value(&self) -> &Value {
+    fn as_value(&self) -> &Value
+    {
         &self.msg
     }
 }
@@ -314,7 +317,8 @@ impl Message {
     /// 1. The value is not an array
     /// 2. The length of the array is less than 3 or greater than 4
     /// 3. The array's first item is not a u8
-    pub fn from(val: Value) -> RpcResult<Self> {
+    pub fn from(val: Value) -> RpcResult<Self>
+    {
         if let Some(array) = val.as_array() {
             let arraylen = array.len();
             if arraylen < 3 || arraylen > 4 {
@@ -349,18 +353,21 @@ impl Message {
 
 // Clone impl
 impl Clone for Message {
-    fn clone(&self) -> Self {
+    fn clone(&self) -> Self
+    {
         Self { msg: self.msg.clone() }
     }
 
-    fn clone_from(&mut self, source: &Self) {
+    fn clone_from(&mut self, source: &Self)
+    {
         self.msg = source.as_value().clone();
     }
 }
 
 
 impl Into<Value> for Message {
-    fn into(self) -> Value {
+    fn into(self) -> Value
+    {
         self.msg
     }
 }
@@ -468,7 +475,8 @@ mod tests {
     // --------------------
 
     // Helper
-    fn mkmessage(msgtype: u8) -> Message {
+    fn mkmessage(msgtype: u8) -> Message
+    {
         let msgtype = Value::from(msgtype);
         let msgid = Value::from(0);
         let msgcode = Value::from(0);
@@ -610,7 +618,8 @@ mod tests {
 
     // Message::message
     #[test]
-    fn message_message_value() {
+    fn message_message_value()
+    {
         let v = Value::from(vec![Value::from(42)]);
         let expected = v.clone();
         let m = Message { msg: v };
@@ -623,15 +632,17 @@ mod tests {
     // Vec<Value> instead of using the from function
     #[test]
     #[should_panic]
-    fn message_as_vec_panic() {
+    fn message_as_vec_panic()
+    {
         let v = Value::from(Value::from(42));
         let m = Message { msg: v };
         m.as_vec();
     }
 
-    //Message::raw_message
+    // Message::raw_message
     #[test]
-    fn message_as_value() {
+    fn message_as_value()
+    {
         let v = Value::from(42);
         let expected = v.clone();
         let msg = Message { msg: v };
@@ -640,7 +651,8 @@ mod tests {
 
     // If a non-Value::Array is stored then will always return an error
     #[test]
-    fn message_from_non_array_always_err() {
+    fn message_from_non_array_always_err()
+    {
         let v = Value::from(42);
         let expected = format!("expected array but got {}", value_type(&v));
         let ret = match Message::from(v) {
@@ -716,7 +728,8 @@ mod tests {
     // A valid value is an array with a length of 3 or 4 and the first item in
     // the array is u8
     #[test]
-    fn message_from_valid_value() {
+    fn message_from_valid_value()
+    {
         let valvec: Vec<Value> = vec![42, 42, 42]
             .iter()
             .map(|v| Value::from(v.clone()))

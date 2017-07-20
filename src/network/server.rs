@@ -45,7 +45,8 @@ where
 
 
 // Helper function to send a shutdown message via a channel
-pub fn shutdown(loop_handle: &Handle, control: mpsc::Sender<ServerMessage>) {
+pub fn shutdown(loop_handle: &Handle, control: mpsc::Sender<ServerMessage>)
+{
     sendmsg::<ServerMessage>(loop_handle, control, ServerMessage::Shutdown);
 }
 
@@ -60,11 +61,9 @@ pub struct Server {
 
 
 impl Server {
-    pub fn new(
-        loop_handle: Handle,
-        stream: Incoming,
-        channel_size: usize,
-    ) -> Self {
+    pub fn new(loop_handle: Handle, stream: Incoming, channel_size: usize)
+        -> Self
+    {
         let control = mpsc::channel::<ServerMessage>(channel_size);
         let handler = mpsc::unbounded::<(TcpStream, SocketAddr)>();
 
@@ -76,14 +75,15 @@ impl Server {
         }
     }
 
-    pub fn control(&self) -> mpsc::Sender<ServerMessage> {
+    pub fn control(&self) -> mpsc::Sender<ServerMessage>
+    {
         let (ref tx, _) = self.control;
         tx.clone()
     }
 
-    fn poll_msg(
-        &mut self,
-    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_msg(&mut self)
+        -> Poll<Option<(TcpStream, SocketAddr)>, io::Error>
+    {
         let msg_poll;
         {
             let (_, ref mut rx) = self.control;
@@ -122,9 +122,9 @@ impl Server {
         }
     }
 
-    fn poll_listener(
-        &mut self,
-    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_listener(&mut self)
+        -> Poll<Option<(TcpStream, SocketAddr)>, io::Error>
+    {
         let (ref tx, _) = self.control;
         let tx = tx.clone();
         let listener_poll = self.listener.poll();
@@ -146,9 +146,9 @@ impl Server {
         }
     }
 
-    fn poll_handler(
-        &mut self,
-    ) -> Poll<Option<(TcpStream, SocketAddr)>, io::Error> {
+    fn poll_handler(&mut self)
+        -> Poll<Option<(TcpStream, SocketAddr)>, io::Error>
+    {
         let (_, ref mut rx) = self.handler;
         let handler_poll = rx.poll();
         match handler_poll {
@@ -168,7 +168,8 @@ impl Stream for Server {
     type Item = (TcpStream, SocketAddr);
     type Error = io::Error;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error>
+    {
         // Poll for a message first
         let msg = self.poll_msg();
 
