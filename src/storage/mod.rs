@@ -29,7 +29,7 @@ pub enum KeyFileError {
 }
 
 
-type KeyFileResult<V> = Result<V, KeyFileError>;
+pub type KeyFileResult<V> = Result<V, KeyFileError>;
 
 
 // ===========================================================================
@@ -53,8 +53,8 @@ pub trait KeyFileBuilder {
 pub trait KeyFileStore {
     fn exists(&self, k: &Vec<u8>) -> bool;
     fn get(&self, k: &Vec<u8>) -> KeyFileResult<Vec<u8>>;
-    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>;
-    // fn delete(&self, k: &[u8]) -> Result<(), String>;
+    fn set(&mut self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>;
+    fn delete(&mut self, k: &Vec<u8>) -> KeyFileResult<()>;
 }
 
 

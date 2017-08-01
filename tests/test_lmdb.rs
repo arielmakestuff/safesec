@@ -19,13 +19,16 @@ extern crate tempdir;
 
 
 // Stdlib imports
+
 use std::fs;
 
 // Third-party imports
+
 use chrono::prelude::*;
 use tempdir::TempDir;
 
 // Local imports
+
 use safesec::storage::*;
 use safesec::storage::lmdb::*;
 
@@ -35,8 +38,9 @@ use safesec::storage::lmdb::*;
 // ===========================================================================
 
 
-fn mktempdir() -> TempDir {
-    //Generate unique temp name
+fn mktempdir() -> TempDir
+{
+    // Generate unique temp name
     let dt = UTC::now();
     let suffix = dt.format("%Y%m%d%H%M%S%.9f");
     let name = format!("safesec_test_{}", suffix.to_string());
@@ -53,7 +57,8 @@ fn mktempdir() -> TempDir {
 
 
 #[test]
-fn create_db() {
+fn create_db()
+{
     // Create temp directory
     let tmpdir = mktempdir();
     let dbpath = tmpdir.path().join("sec.db");
@@ -68,13 +73,14 @@ fn create_db() {
 
 
 #[test]
-fn get_set_value() {
+fn get_set_value()
+{
     // Create temp directory
     let tmpdir = mktempdir();
     let dbpath = tmpdir.path().join("sec.db");
 
     // Create keyfile store
-    let kf = KeyFile::new("temp", Some(dbpath.as_path()));
+    let mut kf = KeyFile::new("temp", Some(dbpath.as_path()));
 
     // Set value
     let key = 42.to_string().into_bytes();
@@ -91,8 +97,34 @@ fn get_set_value() {
 
 
 #[test]
+fn del_value()
+{
+    // Create temp directory
+    let tmpdir = mktempdir();
+    let dbpath = tmpdir.path().join("sec.db");
+
+    // Create keyfile store
+    let mut kf = KeyFile::new("temp", Some(dbpath.as_path()));
+
+    // Set value
+    let key = 42.to_string().into_bytes();
+    let value = "The Answer to Life, the Universe, and Everything";
+    let expected = String::from(value).into_bytes();
+    kf.set(&key, &expected).unwrap();
+
+    // Delete value
+    let result = kf.delete(&key).unwrap();
+
+    // Test
+    assert_eq!(result, ());
+    assert!(!kf.exists(&key));
+}
+
+
+#[test]
 #[should_panic(expected = "Key doesn't exist: 42")]
-fn no_key() {
+fn no_key()
+{
     // Create temp directory
     let tmpdir = mktempdir();
     let dbpath = tmpdir.path().join("sec.db");
@@ -112,20 +144,21 @@ fn no_key() {
             let k = String::from_utf8(e).unwrap();
             let errmsg = format!("Key doesn't exist: {}", k);
             panic!(errmsg)
-        },
-        _ => panic!("Expected error did not occur")
+        }
+        _ => panic!("Expected error did not occur"),
     }
 }
 
 
 #[test]
-fn set_overwrites_value() {
+fn set_overwrites_value()
+{
     // Create temp directory
     let tmpdir = mktempdir();
     let dbpath = tmpdir.path().join("sec.db");
 
     // Create keyfile store
-    let kf = KeyFile::new("temp", Some(dbpath.as_path()));
+    let mut kf = KeyFile::new("temp", Some(dbpath.as_path()));
 
     // Set value
     let key = 42.to_string().into_bytes();
@@ -160,13 +193,14 @@ fn set_overwrites_value() {
 
 
 #[test]
-fn multiple_keys() {
+fn multiple_keys()
+{
     // Create temp directory
     let tmpdir = mktempdir();
     let dbpath = tmpdir.path().join("sec.db");
 
     // Create keyfile store
-    let kf = KeyFile::new("temp", Some(dbpath.as_path()));
+    let mut kf = KeyFile::new("temp", Some(dbpath.as_path()));
 
     // Set values
     for (i, num) in (0..5).rev().enumerate() {

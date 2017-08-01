@@ -120,7 +120,7 @@ impl KeyFile {
         Ok(value)
     }
 
-    fn dbset<K, V>(&self, key: &K, val: &V, flags: Option<WriteFlags>)
+    fn dbset<K, V>(&mut self, key: &K, val: &V, flags: Option<WriteFlags>)
         -> LmdbResult<()>
     where
         K: AsRef<[u8]>,
@@ -132,6 +132,16 @@ impl KeyFile {
         };
         let mut session = self.env.begin_rw_txn()?;
         session.put(self.db.clone(), key, val, flags)?;
+        session.commit()?;
+        Ok(())
+    }
+
+    fn dbdel<K>(&mut self, key: &K) -> LmdbResult<()>
+    where
+        K: AsRef<[u8]>,
+    {
+        let mut session = self.env.begin_rw_txn()?;
+        session.del(self.db.clone(), key, None)?;
         session.commit()?;
         Ok(())
     }
@@ -179,14 +189,22 @@ impl KeyFileStore for KeyFile {
         }
     }
 
-    fn set(&self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>
+    fn set(&mut self, k: &Vec<u8>, file: &Vec<u8>) -> KeyFileResult<()>
     {
         match self.dbset(k, file, None) {
             Ok(_) => Ok(()),
             _ => Err(KeyFileError::Other),
         }
     }
-    // fn delete(&self, k: &[u8]) -> Result<(), String>;
+
+    fn delete(&mut self, k: &Vec<u8>) -> KeyFileResult<()>
+    {
+        match self.dbdel(k) {
+            Ok(()) => Ok(()),
+            Err(LmdbError::NotFound) => Err(KeyFileError::Key(k.clone())),
+            Err(_) => Err(KeyFileError::Other),
+        }
+    }
 }
 
 

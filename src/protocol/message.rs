@@ -23,10 +23,12 @@ use network::rpc::CodeConvert;
 // ===========================================================================
 
 
+#[derive(Debug, PartialEq)]
 pub enum ProtocolError {
     InvalidData,
     InvalidMessage,
     InvalidMessageType,
+    UnexpectedMessage,
 
     // --------------------
     // Request
@@ -86,7 +88,10 @@ pub enum SessionType {
 
 // Used with the request rpc message type.
 #[derive(Debug, PartialEq, Clone, CodeConvert)]
-pub enum BootRequest {
+pub enum BootMessage {
+    // Determine if a key exists
+    KeyExists,
+
     // Retrieve the keyfile
     GetKeyFile,
 }
@@ -102,6 +107,14 @@ pub enum BootError {
 }
 
 
+// Used with the notification rpc message type.
+#[derive(Debug, PartialEq, Clone, CodeConvert)]
+pub enum BootNotice {
+    // No more requests will be made
+    Done = 2,
+}
+
+
 // ===========================================================================
 // Auth requests
 // ===========================================================================
@@ -109,7 +122,7 @@ pub enum BootError {
 
 // Used with the request rpc message type.
 #[derive(Debug, PartialEq, Clone, CodeConvert)]
-pub enum AuthRequest {
+pub enum AuthMessage {
     // Retrieve the keyfile.
     //
     // Requires 1 argument: key. Only succeeds if the keyfile exists.
@@ -161,6 +174,17 @@ pub enum AuthError {
 
     // Key file exists.
     KeyFileExists,
+
+    // DB error
+    DatabaseError,
+}
+
+
+// Used with the notification rpc message type.
+#[derive(Debug, PartialEq, Clone, CodeConvert)]
+pub enum AuthNotice {
+    // No more requests will be made
+    Done = 2,
 }
 
 
