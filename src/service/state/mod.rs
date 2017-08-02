@@ -20,8 +20,8 @@
 // ===========================================================================
 
 
-mod auth;
-mod boot;
+pub mod auth;
+pub mod boot;
 
 
 // ===========================================================================
@@ -49,7 +49,7 @@ use storage::KeyFileStore;
 // ===========================================================================
 
 
-type StateResult<T> = Result<T, ProtocolError>;
+pub type StateResult<T> = Result<T, ProtocolError>;
 
 
 // ===========================================================================
@@ -58,6 +58,7 @@ type StateResult<T> = Result<T, ProtocolError>;
 
 
 pub enum State {
+    Nil,
     Start(Box<SessionState>),
     ProcessBootMessage(Box<SessionState>, Option<boot::BootResponse>),
     BootEnd,
@@ -81,10 +82,10 @@ pub trait SessionState {
 // ===========================================================================
 
 
-type KeyFileDB = Rc<RwLock<KeyFileStore>>;
+pub type KeyFileDB = Rc<RwLock<KeyFileStore>>;
 
 
-type SessionInfo = NotificationMessage<SessionType>;
+pub type SessionInfo = NotificationMessage<SessionType>;
 
 
 pub struct Start {
