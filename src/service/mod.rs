@@ -21,7 +21,7 @@
 
 
 pub mod state;
-pub mod rpcmessage;
+pub mod rpcservice;
 
 
 // ===========================================================================
