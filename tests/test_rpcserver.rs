@@ -697,13 +697,66 @@ fn client_adddata() -> io::Result<String>
     Ok("good".to_string())
 }
 
+// ===========================================================================
+// Tests
+// ===========================================================================
+
+
+extern crate chrono;
+extern crate tempdir;
+
+use std::fs;
+
+use chrono::prelude::*;
+use tempdir::TempDir;
+
+use safesec::Config;
+use safesec::storage::KeyFileBuilder;
+use safesec::storage::lmdb::KeyFile;
+
+fn _mktempdir() -> TempDir
+{
+    // Generate unique temp name
+    let dt = UTC::now();
+    let suffix = dt.format("%Y%m%d%H%M%S%.9f");
+    let name = format!("safesec_test_{}", suffix.to_string());
+    let tmpdir = TempDir::new(&name).unwrap();
+    let dbpath = tmpdir.path().join("sec.db");
+    fs::create_dir(&dbpath).unwrap();
+    tmpdir
+
+}
+
+
+fn _create_db(tmpdir: &TempDir) -> KeyFile
+{
+    // Create temp directory
+    // let tmpdir = _mktempdir();
+    let dbpath = tmpdir.path().join("sec.db");
+
+    // Create keyfile store
+    KeyFile::new("temp", Some(dbpath.as_path()))
+}
+
 
 #[test]
 fn test_rpcserver()
 {
+    // Create database and bind address
+    let tmpdir = _mktempdir();
+    let dbdir = tmpdir.path().to_owned();
+    // let db = Rc::new(RwLock::new(_create_db(&tmpdir)));
+    let address = "127.0.0.1:12345".parse().unwrap();
+
+    // Create a config
+    let config = Config {
+        name: "safesec".to_string(),
+        dbdir: dbdir,
+        bindaddr: address,
+    };
 
     // Start server
-    let child = thread::spawn(move || if let Err(e) = serve() {
+    let child = thread::spawn(move || if let Err(e) = serve(&config) {
         // println!("Server failed with {}", e);
         panic!("Server failed with {}", e);
     });

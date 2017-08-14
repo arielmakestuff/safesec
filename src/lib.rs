@@ -55,6 +55,9 @@ pub mod util;
 // Stdlib imports
 
 use std::io;
+use std::mem;
+use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::RwLock;
 
@@ -74,51 +77,25 @@ use network::codec::MsgPackCodec;
 use network::rpc::Message;
 use network::server::Server;
 use service::rpcservice::{RpcService, RpcState, ServiceWithShutdown};
-
-
-// ===========================================================================
-// serve
-// ===========================================================================
-
-
-// ------------------------------------------------------------------
-// TODO: Remove this function and imports once cli options have been
-// implemented
-// ------------------------------------------------------------------
-
-extern crate chrono;
-extern crate tempdir;
-use chrono::prelude::*;
-use std::fs;
 use storage::KeyFileBuilder;
 use storage::lmdb::KeyFile;
-use tempdir::TempDir;
 
-fn _mktempdir() -> TempDir
-{
-    // Generate unique temp name
-    let dt = UTC::now();
-    let suffix = dt.format("%Y%m%d%H%M%S%.9f");
-    let name = format!("safesec_test_{}", suffix.to_string());
-    let tmpdir = TempDir::new(&name).unwrap();
-    let dbpath = tmpdir.path().join("sec.db");
-    fs::create_dir(&dbpath).unwrap();
-    tmpdir
 
-}
+// ===========================================================================
+// Config
+// ===========================================================================
 
-fn _create_db(tmpdir: &TempDir) -> KeyFile
-{
-    // Create temp directory
-    // let tmpdir = _mktempdir();
-    let dbpath = tmpdir.path().join("sec.db");
 
-    // Create keyfile store
-    KeyFile::new("temp", Some(dbpath.as_path()))
+pub struct Config {
+    pub name: String,
+    pub dbdir: PathBuf,
+    pub bindaddr: SocketAddr,
 }
 
 
-use std::mem;
+// ===========================================================================
+// SendMessage future
+// ===========================================================================
 
 
 #[derive(Debug)]
@@ -215,30 +192,30 @@ where
 }
 
 
-// ------------------------------------------------------------------
-// End TODO
-// ------------------------------------------------------------------
+// ===========================================================================
+// serve
+// ===========================================================================
 
 
-pub fn serve() -> io::Result<()>
+pub fn serve(config: &Config) -> io::Result<()>
 {
     // Create event loop
     let mut core = Core::new()?;
     let handle = core.handle();
 
-    // Create database
-    let tmpdir = _mktempdir();
-    let db = Rc::new(RwLock::new(_create_db(&tmpdir)));
+    // Open database, creating it if it doesn't exist
+    let keyfile = KeyFile::new("temp", Some(config.dbdir.as_path()));
+    let db = Rc::new(RwLock::new(keyfile));
 
-    // Create server stream
-    // pub fn new(address: &SocketAddr, loop_handle: Handle, channel_size: usize) -> Self {
-    // Bind to localhost only
-    let address = "127.0.0.1:12345".parse().unwrap();
-    let listener = match TcpListener::bind(&address, &handle) {
+    // Create server stream, binding to configured bind address
+    let listener = match TcpListener::bind(&config.bindaddr, &handle) {
         Ok(l) => l,
         Err(e) => {
-            let errmsg =
-                format!("Unable to bind to address {}: {}", address, e);
+            let errmsg = format!(
+                "Unable to bind to address {}: {}",
+                config.bindaddr,
+                e
+            );
             let err =
                 io::Error::new(io::ErrorKind::ConnectionRefused, errmsg);
             return Err(err);
@@ -260,42 +237,34 @@ pub fn serve() -> io::Result<()>
 
             let responses = reader
                 .and_then(move |req| {
+                    // println!("calling service");
                     service.call(req)
                 })
 
                 // Don't send any None values
-                .filter(|v| {
-                    v.is_some()
-                })
+                .filter(|v| v.is_some())
 
                 // Process the message and generate a response
                 .and_then(move |v| {
+                    // println!("processing message");
                     let msg = Message::from(v.unwrap()).unwrap();
                     rpcstate.process_message(msg)
                 })
 
                 // Don't send any None values
-                // .filter(|v| v.is_some())
-                .filter(|v| {
-                    v.is_some()
-                })
+                .filter(|v| v.is_some())
 
                 // Unwrap Some(Value)
-                .map(|some_val| {
-                    some_val.unwrap()
-                });
+                .map(|some_val| some_val.unwrap());
 
             let server = send_message(writer, responses).map_err(|_| ());
-            // let server = writer.send_all(responses).then(|_| {
-            //     println!("Finished sending response");
-            //     Ok(())
-            // });
 
             handle.spawn(server);
 
             Ok(())
         })
-        .map_err(|_| {
+        .map_err(|e| {
+            eprintln!("ERROR HAPPENED: {}", e);
             io::Error::new(io::ErrorKind::Other, "connection handler error")
         });
 

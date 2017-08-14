@@ -11,6 +11,8 @@ name = "safesec"
 # lmdb-rs = "0.7.5"
 lmdb = "0.7"
 lmdb-sys = "0.7"
+clap = "2"
+appdirs = "0.2"
 
 # Tokio deps
 bytes = "0.4"
@@ -30,8 +32,8 @@ rmp-serde = "0.13"
 safesec-derive = { path = "derive" }
 
 # Non-dev dependency until cli interface implemented
-tempdir = "0.3.5"
-chrono = "0.3"
+# tempdir = "0.3.5"
+# chrono = "0.3"
 
 [dependencies.rmpv]
 version = "0.4"
@@ -39,6 +41,6 @@ features = ["with-serde"]
 
 
 [dev-dependencies]
-# tempdir = "0.3.5"
-# chrono = "0.3"
+tempdir = "0.3.5"
+chrono = "0.3"
 quickcheck = "0.4"

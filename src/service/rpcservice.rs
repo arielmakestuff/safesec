@@ -142,7 +142,13 @@ impl RpcState<ServerMessage> {
             State::Start(s) => {
                 match s.change(msg) {
                     Ok(newstate) => self.state.set(newstate),
-                    Err(_) => self.shutdown(),
+                    Err(e) => {
+                        eprintln!(
+                            "Error happened in process_message {:?}",
+                            e
+                        );
+                        self.shutdown()
+                    }
                 }
                 None
             }
