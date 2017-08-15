@@ -69,11 +69,8 @@ impl Service for RpcService<ServerMessage> {
         // Convert Value into a Message
         match Message::from(val) {
 
-            // Immediately shutdown silently if received an invalid message
-            Err(_) => {
-                self.shutdown();
-                future::ok::<Option<Value>, io::Error>(None).boxed()
-            }
+            // Immediately shutdown connection if received an invalid message
+            Err(_) => future::ok::<Option<Value>, io::Error>(None).boxed(),
 
             // Return the message
             Ok(m) => {
@@ -141,16 +138,22 @@ impl RpcState<ServerMessage> {
             State::Nil | State::BootEnd | State::AuthEnd => unreachable!(),
             State::Start(s) => {
                 match s.change(msg) {
-                    Ok(newstate) => self.state.set(newstate),
+                    // Send Value::Nil to signify we are done here but
+                    // connection should stay alive
+                    Ok(newstate) => {
+                        self.state.set(newstate);
+                        Some(Value::Nil)
+                    }
+
+                    // Close the connection if an error happened
                     Err(e) => {
                         eprintln!(
                             "Error happened in process_message {:?}",
                             e
                         );
-                        self.shutdown()
+                        None
                     }
                 }
-                None
             }
             State::ProcessBootMessage(s, _) => {
                 match s.change(msg) {
@@ -162,10 +165,7 @@ impl RpcState<ServerMessage> {
                         Some(val)
                     }
                     Ok(State::BootEnd) |
-                    Err(_) => {
-                        self.shutdown();
-                        None
-                    }
+                    Err(_) => None,
                     Ok(_) => unreachable!(),
                 }
             }
@@ -179,10 +179,7 @@ impl RpcState<ServerMessage> {
                         Some(val)
                     }
                     Ok(State::AuthEnd) |
-                    Err(_) => {
-                        self.shutdown();
-                        None
-                    }
+                    Err(_) => None,
                     Ok(_) => unreachable!(),
                 }
             }
@@ -313,8 +310,10 @@ mod tests {
 
         // ------------------------------------------------------------------
         // THEN
-        // the result is None,
-        // Some(BootResponse(42, BootError::Nil, Value::Boolean(true))), None
+        // the result is
+        //     [Some(Value::Nil),
+        //      Some(BootResponse(42, BootError::Nil, Value::Boolean(true))),
+        //      None]
         // and service state is State::Nil
         // ------------------------------------------------------------------
         // Third result
@@ -329,7 +328,7 @@ mod tests {
         assert_eq!(resp.result(), &Value::Boolean(true));
 
         // First result
-        assert_eq!(result.pop().unwrap(), None);
+        assert_eq!(result.pop().unwrap(), Some(Value::Nil));
 
         // Service state is State::Nil
         match *service.state.get_mut() {
@@ -401,8 +400,10 @@ mod tests {
 
         // ------------------------------------------------------------------
         // THEN
-        // the result is None,
-        // Some(AuthResponse(42, AuthError::Nil, Value::Boolean(true))), None
+        // the result is
+        //     [None,
+        //      Some(AuthResponse(42, AuthError::Nil, Value::Boolean(true))),
+        //      None]
         // and service state is State::Nil
         // ------------------------------------------------------------------
         // Third result
@@ -417,7 +418,7 @@ mod tests {
         assert_eq!(resp.result(), &Value::Boolean(true));
 
         // First result
-        assert_eq!(result.pop().unwrap(), None);
+        assert_eq!(result.pop().unwrap(), Some(Value::Nil));
 
         // Service state is State::Nil
         match *service.state.get_mut() {

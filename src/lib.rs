@@ -63,8 +63,9 @@ use std::sync::RwLock;
 
 // Third-party imports
 
-use futures::{Async, AsyncSink, Future, Poll, Sink, Stream, task};
+use futures::{Async, AsyncSink, Future, Poll, Sink, Stream, future, task};
 use futures::stream::SplitSink;
+use futures::sync::mpsc;
 use rmpv::Value;
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::Core;
@@ -75,7 +76,7 @@ use tokio_service::Service;
 
 use network::codec::MsgPackCodec;
 use network::rpc::Message;
-use network::server::Server;
+use network::server::{Server, ServerMessage};
 use service::rpcservice::{RpcService, RpcState, ServiceWithShutdown};
 use storage::KeyFileBuilder;
 use storage::lmdb::KeyFile;
@@ -197,7 +198,8 @@ where
 // ===========================================================================
 
 
-pub fn serve(config: &Config) -> io::Result<()>
+pub fn serve(config: &Config, control: mpsc::Receiver<ServerMessage>)
+    -> io::Result<()>
 {
     // Create event loop
     let mut core = Core::new()?;
@@ -226,6 +228,31 @@ pub fn serve(config: &Config) -> io::Result<()>
     let server = Server::new(handle.clone(), listener.incoming(), 1);
     let tx = server.control();
 
+    // Create listener future for server shutdown
+    let shutdown = control
+
+        // When anything received from control, shutdown server and resolve
+        // stream future
+        .and_then(|cmd| {
+            let stop_stream = match cmd {
+                ServerMessage::Shutdown => true,
+                _ => false
+            };
+            tx.clone().send(cmd)
+                // Return () as the error
+                .map_err(|_| ())
+
+                // Return the passed in command once send is done
+                .map(move |_| stop_stream)
+        })
+
+        // Stop the stream once shutdown message has been sent
+        .take_while(|stop_stream| Ok(!stop_stream))
+
+        // Drive stream to completion
+        .for_each(|_| Ok(()));
+
+
     // Set up server future
     let server = server
         .for_each(|(socket, _peer_addr)| {
@@ -236,23 +263,37 @@ pub fn serve(config: &Config) -> io::Result<()>
             rpcstate.set_server_control(tx.clone(), handle.clone());
 
             let responses = reader
-                .and_then(move |req| {
-                    // println!("calling service");
-                    service.call(req)
-                })
+                .and_then(move |req| service.call(req))
 
-                // Don't send any None values
-                .filter(|v| v.is_some())
+                // Close the stream if a None has been generated
+                .take_while(|v| Ok(v.is_some()))
+
+                // Don't send any Value::Nil values
+                .filter(|v| {
+                    match *v {
+                        Some(Value::Nil) => false,
+                        Some(_) => true,
+                        None => unreachable!()
+                    }
+                })
 
                 // Process the message and generate a response
                 .and_then(move |v| {
-                    // println!("processing message");
                     let msg = Message::from(v.unwrap()).unwrap();
                     rpcstate.process_message(msg)
                 })
 
-                // Don't send any None values
-                .filter(|v| v.is_some())
+                // Close the stream if a None has been generated
+                .take_while(|v| Ok(v.is_some()))
+
+                // Don't send any Value::Nil values
+                .filter(|v| {
+                    match *v {
+                        Some(Value::Nil) => false,
+                        Some(_) => true,
+                        None => unreachable!()
+                    }
+                })
 
                 // Unwrap Some(Value)
                 .map(|some_val| some_val.unwrap());
@@ -267,6 +308,22 @@ pub fn serve(config: &Config) -> io::Result<()>
             eprintln!("ERROR HAPPENED: {}", e);
             io::Error::new(io::ErrorKind::Other, "connection handler error")
         });
+
+    let server = server.select2(shutdown).then(|res| {
+        match res {
+            Ok(_) => Ok(()),
+            Err(future::Either::A((err, _))) => Err(err),
+
+            // Need to convert () to proper io::Error
+            Err(future::Either::B(_)) => {
+                let err = io::Error::new(
+                    io::ErrorKind::Other,
+                    "error sending command to server",
+                );
+                Err(err)
+            }
+        }
+    });
 
     core.run(server)
 }

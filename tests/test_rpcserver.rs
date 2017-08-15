@@ -42,7 +42,8 @@ use std::time::Duration;
 // Third-party imports
 
 use bytes::BytesMut;
-use futures::{Async, Future, Poll, Stream, future, stream, task};
+use futures::{Async, Future, Poll, Sink, Stream, future, stream, task};
+use futures::sync::mpsc;
 use rmpv::Value;
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Core;
@@ -54,6 +55,7 @@ use tokio_io::io::{WriteAll, write_all};
 
 use safesec::network::codec::MsgPackCodec;
 use safesec::network::rpc::{Message, MessageType, RpcMessage, RpcResponse};
+use safesec::network::server::ServerMessage;
 use safesec::protocol::message::{AuthError, AuthMessage, AuthNotice,
                                  BootNotice, SessionType};
 use safesec::serve;
@@ -677,7 +679,8 @@ fn hello_world(socket: TcpStream) -> FutureSession
 // ===========================================================================
 
 
-fn client_adddata() -> io::Result<String>
+fn client_adddata(control: mpsc::Sender<ServerMessage>)
+    -> io::Result<String>
 {
     // Create event loop
     let mut core = Core::new()?;
@@ -690,6 +693,18 @@ fn client_adddata() -> io::Result<String>
 
     // Set up request and response
     let request = socket.and_then(|s| hello_world(s));
+
+    // Shutdown server once everything done
+    let request = request.and_then(move |_s| {
+        control.send(ServerMessage::Shutdown).map(|_| ()).map_err(
+            |_| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    "error sending shutdown command",
+                )
+            },
+        )
+    });
 
     // Send request and get response
     // let (_socket, data) = core.run(response).unwrap();
@@ -755,8 +770,11 @@ fn test_rpcserver()
         bindaddr: address,
     };
 
+    // Create command channel
+    let (tx, rx) = mpsc::channel::<ServerMessage>(1);
+
     // Start server
-    let child = thread::spawn(move || if let Err(e) = serve(&config) {
+    let child = thread::spawn(move || if let Err(e) = serve(&config, rx) {
         // println!("Server failed with {}", e);
         panic!("Server failed with {}", e);
     });
@@ -764,7 +782,7 @@ fn test_rpcserver()
     thread::sleep(Duration::from_millis(500));
 
     // Start client
-    let res = client_adddata();
+    let res = client_adddata(tx);
 
     let val = match res {
         Ok(t) => {

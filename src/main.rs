@@ -15,6 +15,8 @@ extern crate appdirs;
 #[macro_use]
 extern crate clap;
 
+extern crate futures;
+
 // Local externs
 
 extern crate safesec;
@@ -36,10 +38,12 @@ use std::process::exit;
 // Third-party imports
 
 use clap::{App, Arg};
+use futures::sync::mpsc;
 
 // Local imports
 
 use safesec::{Config, serve};
+use safesec::network::server::ServerMessage;
 
 
 // ===========================================================================
@@ -249,9 +253,13 @@ fn main()
             Ok(c) => c,
         };
 
+        // Create channel (currently doesn't do anything)
+        // TODO send shutdown command when CTRL-C received
+        let (_tx, rx) = mpsc::channel::<ServerMessage>(1);
+
         // Start server
         println!("{} running", &config.name);
-        if let Err(e) = serve(&config) {
+        if let Err(e) = serve(&config, rx) {
             eprintln!("Server failed: {}", e);
             1
         } else {
