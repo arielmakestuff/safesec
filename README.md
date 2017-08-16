@@ -22,23 +22,36 @@ sub-optimally.
 
 ## Getting started
 
+### Install Rust toolchain
+
 As safesec is in heavy development, there are no pre-built binaries. To build,
-first install the Rust toolchain. Depending on your operating system, rust may
-be installable from a package management system. Alternatively, you may
-install rust via [`rustup`].
+first install the Rust toolchain. While the toolchain may be installable from
+a package management system depending on your platform, it currently is best
+to install via [rustup][1]. Please visit [www.rustup.rs][1] to download and
+run the installer.
 
-[`rustup`]: https://www.rustup.rs
+[1]: https://www.rustup.rs
 
-Once Rust is installed, simply enter these commands:
+### Run safesec
+
+Once Rust is installed, simply enter these commands to confirm that the test
+suite succeeds:
 
 ```shell
-git clone https://github.com/arielmakestuff/safesec.git
-cd safesec
-cargo run
+$ git clone https://github.com/arielmakestuff/safesec.git
+$ cd safesec
+$ cargo test
 ```
 
-Currently, this should do nothing more than print "Hello world" on the
-console.
+This will run all unit, integration, and doc tests.
+
+To run the safesec server itself, run the following commands from the root of
+the project directory:
+
+```shell
+$ cargo build --release
+$ target/release/safesec
+```
 
 ## Features
 
