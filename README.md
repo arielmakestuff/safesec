@@ -38,7 +38,7 @@ Once Rust is installed, simply enter these commands to confirm that the test
 suite succeeds:
 
 ```shell
-$ git clone https://github.com/arielmakestuff/safesec.git
+$ git clone --branch 0.1.0 https://github.com/arielmakestuff/safesec.git
 $ cd safesec
 $ cargo test
 ```
