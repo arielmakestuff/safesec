@@ -1,0 +1,12 @@
+[package]
+name = "safesec-derive"
+version = "0.1.0"
+authors = ["Ariel De Ocampo <arielmakestuff@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "0.11"
+quote = "0.3"
+num = "0.1"

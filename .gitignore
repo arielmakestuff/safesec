@@ -1,0 +1,8 @@
+target/
+**/*.rs.bk
+/Cargo.lock
+/tags
+*.json
+
+# Ignore swap files
+*.swp

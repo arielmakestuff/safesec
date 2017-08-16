@@ -1,0 +1,41 @@
+[package]
+name = "safesec"
+version = "0.1.0"
+authors = ["Ariel De Ocampo <arielmakestuff@gmail.com>"]
+
+[[bin]]
+doc = false
+name = "safesec"
+
+[dependencies]
+lmdb = "0.7"
+lmdb-sys = "0.7"
+clap = "2"
+appdirs = "0.2"
+bytes = "0.4"
+
+# Tokio deps
+futures = "0.1"
+tokio-io = "0.1"
+tokio-core = "0.1"
+tokio-proto = "0.1"
+tokio-service = "0.1"
+tokio-signal = "0.1"
+
+# MsgPack deps
+serde = "1.0"
+serde_derive = "1.0"
+rmp = "0.8"
+rmp-serde = "0.13"
+
+# Proc macro
+safesec-derive = { path = "derive" }
+
+[dependencies.rmpv]
+version = "0.4"
+features = ["with-serde"]
+
+[dev-dependencies]
+tempdir = "0.3.5"
+chrono = "0.3"
+quickcheck = "0.4"
