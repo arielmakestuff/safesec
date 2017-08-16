@@ -27,6 +27,7 @@ extern crate serde;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate tokio_service;
+extern crate tokio_signal;
 
 // Local externs
 
@@ -228,19 +229,42 @@ pub fn serve(config: &Config, control: mpsc::Receiver<ServerMessage>)
     let server = Server::new(handle.clone(), listener.incoming(), 1);
     let tx = server.control();
 
+    // Create stream of SIGINT/CTRL-C notifications
+    let ctrl_c = tokio_signal::ctrl_c(&handle)
+        .flatten_stream()
+        .map_err(|_| ())
+        .and_then(|_| {
+            // Send shutdown command
+            tx.clone().send(ServerMessage::Shutdown)
+                // Return () as the error
+                .map_err(|_| ())
+
+                // Stop the stream once server shutdown done
+                .map(|_| ())
+        });
+
     // Create listener future for server shutdown
+    let shutdown_tx = tx.clone();
     let shutdown = control
+        .map_err(|_| {
+            io::Error::new(io::ErrorKind::Other, "error with command receiver")
+        })
 
         // When anything received from control, shutdown server and resolve
         // stream future
-        .and_then(|cmd| {
+        .and_then(move |cmd| {
             let stop_stream = match cmd {
                 ServerMessage::Shutdown => true,
                 _ => false
             };
-            tx.clone().send(cmd)
+            shutdown_tx.clone().send(cmd)
                 // Return () as the error
-                .map_err(|_| ())
+                .map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "error sending shutdown command"
+                    )
+                })
 
                 // Return the passed in command once send is done
                 .map(move |_| stop_stream)
@@ -250,7 +274,25 @@ pub fn serve(config: &Config, control: mpsc::Receiver<ServerMessage>)
         .take_while(|stop_stream| Ok(!stop_stream))
 
         // Drive stream to completion
-        .for_each(|_| Ok(()));
+        .for_each(|_| Ok(()))
+
+        // Handle either shutdown or ctrl-c
+        .select2(ctrl_c.into_future().map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                "error handling ctrl-c notification",
+            )
+        }))
+        .then(|res| match res {
+            // Either shutdown or ctrl-c future completed
+            Ok(_) => Ok(()),
+
+            // This is an io::Error
+            Err(future::Either::A((err, _))) |
+            Err(future::Either::B((err, _))) => {
+                Err(err)
+            }
+        });
 
 
     // Set up server future
@@ -309,20 +351,10 @@ pub fn serve(config: &Config, control: mpsc::Receiver<ServerMessage>)
             io::Error::new(io::ErrorKind::Other, "connection handler error")
         });
 
-    let server = server.select2(shutdown).then(|res| {
-        match res {
-            Ok(_) => Ok(()),
-            Err(future::Either::A((err, _))) => Err(err),
-
-            // Need to convert () to proper io::Error
-            Err(future::Either::B(_)) => {
-                let err = io::Error::new(
-                    io::ErrorKind::Other,
-                    "error sending command to server",
-                );
-                Err(err)
-            }
-        }
+    let server = server.select2(shutdown).then(|res| match res {
+        Ok(_) => Ok(()),
+        Err(future::Either::A((err, _))) |
+        Err(future::Either::B((err, _))) => Err(err),
     });
 
     core.run(server)
